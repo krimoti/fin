@@ -256,9 +256,38 @@ body{font-family:'Heebo',sans-serif;background:linear-gradient(160deg,#dbeeff,#f
   .stb{grid-template-columns:1fr 1fr}
   .hdr-title{font-size:15px}
 }
+/* ── LOGIN SCREEN ── */
+.lock-screen{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#dbeeff,#f0f9ff 50%,#e8f0fa);display:flex;align-items:center;justify-content:center;padding:20px}
+.lock-card{background:#fff;border-radius:24px;padding:36px 28px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(14,90,138,.18);text-align:center}
+.lock-icon{font-size:52px;margin-bottom:12px}
+.lock-title{font-size:22px;font-weight:700;color:var(--b700);margin-bottom:6px}
+.lock-sub{font-size:13px;color:var(--g500);margin-bottom:24px;line-height:1.5}
+.lock-input{width:100%;padding:14px 16px;border:2px solid var(--g200);border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:18px;text-align:center;letter-spacing:4px;outline:none;margin-bottom:12px;-webkit-appearance:none;background:#fff;color:var(--g800)}
+.lock-input:focus{border-color:var(--b400)}
+.lock-btn{width:100%;padding:14px;background:var(--b500);color:#fff;border:none;border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:10px}
+.lock-btn:active{background:var(--b700)}
+.lock-err{font-size:13px;color:var(--r600);min-height:20px;font-weight:500}
+.lock-hint{font-size:11px;color:var(--g400);margin-top:10px}
+.lock-link{background:none;border:none;color:var(--b500);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;text-decoration:underline;margin-top:6px;display:block;width:100%}
 </style>
 </head>
 <body>
+
+<!-- ── מסך נעילה ── -->
+<div class="lock-screen" id="lockScreen">
+  <div class="lock-card">
+    <div class="lock-icon" id="lockIcon">🔐</div>
+    <div class="lock-title" id="lockTitle">ניהול פיננסי</div>
+    <div class="lock-sub" id="lockSub">הכנס סיסמה כדי להמשיך</div>
+    <input class="lock-input" id="lockInput" type="password" placeholder="••••••"
+      maxlength="20" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')lockSubmit()">
+    <button class="lock-btn" onclick="lockSubmit()" id="lockBtn">🔓 כניסה</button>
+    <div class="lock-err" id="lockErr"></div>
+    <div class="lock-hint" id="lockHint"></div>
+    <button class="lock-link" id="lockChangeBtn" onclick="showChangePass()" style="display:none">🔑 שנה סיסמה</button>
+  </div>
+</div>
 <div class="app">
 
   <!-- HEADER -->
@@ -386,6 +415,43 @@ body{font-family:'Heebo',sans-serif;background:linear-gradient(160deg,#dbeeff,#f
       </div>
     </div>
   </div>
+  <!-- BACKUP PANEL -->
+  <div class="panel" id="p-backup">
+    <div class="pc">
+      <div class="ph">
+        <div class="pt">📤 ייצוא גיבוי</div>
+      </div>
+      <p style="font-size:13px;color:var(--g500);margin-bottom:14px;line-height:1.6">שמור קובץ JSON של כל הנתונים שלך. אפשר לייבא אותו בכל מכשיר אחר או לשחזר ממנו.</p>
+      <button class="btn-add" style="width:100%;justify-content:center;font-size:15px;padding:14px" onclick="exportJSON()">📥 ייצא קובץ JSON</button>
+    </div>
+    <div class="pc">
+      <div class="ph">
+        <div class="pt">📂 ייבוא גיבוי</div>
+      </div>
+      <p style="font-size:13px;color:var(--g500);margin-bottom:14px;line-height:1.6">בחר קובץ JSON שיוצא קודם לכן. הנתונים הנוכחיים יוחלפו.</p>
+      <label style="display:block;width:100%">
+        <input type="file" id="importFile" accept=".json" onchange="importJSON(event)" style="display:none">
+        <div onclick="document.getElementById('importFile').click()"
+          style="background:var(--g50);border:2px dashed var(--g300);border-radius:var(--rs);padding:22px;text-align:center;cursor:pointer;font-size:14px;color:var(--g600)">
+          📁 לחץ לבחירת קובץ JSON
+        </div>
+      </label>
+      <div id="importStatus" style="font-size:13px;margin-top:10px;text-align:center;min-height:20px"></div>
+    </div>
+    <div class="pc">
+      <div class="ph">
+        <div class="pt">🔑 סיסמה</div>
+      </div>
+      <button class="btn-add" style="width:100%;justify-content:center;background:var(--g600)" onclick="showChangePass()">🔑 שנה סיסמה</button>
+      <div style="height:10px"></div>
+      <button class="btn-add" style="width:100%;justify-content:center;background:var(--r600)" onclick="logoutApp()">🚪 נעל את האפליקציה</button>
+    </div>
+    <div class="pc" style="background:var(--g50)">
+      <div class="pt" style="margin-bottom:8px;font-size:13px">ℹ️ מידע על האחסון</div>
+      <div id="storageInfo" style="font-size:12px;color:var(--g500);line-height:1.8"></div>
+    </div>
+  </div>
+
 </div>
 
 <!-- BOTTOM TABS -->
@@ -395,6 +461,7 @@ body{font-family:'Heebo',sans-serif;background:linear-gradient(160deg,#dbeeff,#f
   <button class="tb" onclick="sw('sav')" id="t-sav"><span class="tb-ic">🏦</span><span class="tb-lb">חסכונות</span></button>
   <button class="tb" onclick="sw('chart')" id="t-chart"><span class="tb-ic">📈</span><span class="tb-lb">גרפים</span></button>
   <button class="tb" onclick="sw('ai')" id="t-ai"><span class="tb-ic">🤖</span><span class="tb-lb">AI</span></button>
+  <button class="tb" onclick="sw('backup')" id="t-backup"><span class="tb-ic">💾</span><span class="tb-lb">גיבוי</span></button>
 </nav>
 
 <!-- MODAL -->
@@ -613,14 +680,95 @@ function delItem(type,id){
   else if(type==='pension'){pension=pension.filter(p=>p.id!==id);renderPension();}
 }
 
-// ── TABS ──
+// ── TABS (עם תמיכה בטאב גיבוי) ──
 function sw(name){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.tb').forEach(b=>b.classList.remove('on'));
   document.getElementById('p-'+name).classList.add('on');
   document.getElementById('t-'+name).classList.add('on');
   if(name==='chart')setTimeout(renderCharts,60);
+  if(name==='backup')updateStorageInfo();
   window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── ייצוא JSON ──
+function exportJSON(){
+  const data={
+    version:1,
+    exportedAt: new Date().toISOString(),
+    expenses, incomes, loans, savings, pension
+  };
+  const json=JSON.stringify(data,null,2);
+  const blob=new Blob([json],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  const dateStr=new Date().toISOString().slice(0,10);
+  a.href=url;
+  a.download=`financial_backup_${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  document.getElementById('importStatus').innerHTML=
+    '<span style="color:var(--gr600)">✅ הקובץ יוצא בהצלחה!</span>';
+  setTimeout(()=>document.getElementById('importStatus').textContent='',3000);
+}
+
+// ── ייבוא JSON ──
+function importJSON(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  const status=document.getElementById('importStatus');
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      // ולידציה בסיסית
+      if(typeof data!=='object'||data===null)throw new Error('קובץ לא תקין');
+      const confirm=window.confirm(
+        `ייבוא גיבוי מ-${data.exportedAt?new Date(data.exportedAt).toLocaleDateString('he-IL'):'תאריך לא ידוע'}?\n\nהנתונים הנוכחיים יוחלפו!`
+      );
+      if(!confirm){event.target.value='';return;}
+      if(data.expenses)  expenses  = data.expenses;
+      if(data.incomes)   incomes   = data.incomes;
+      if(data.loans)     loans     = data.loans;
+      if(data.savings)   savings   = data.savings;
+      if(data.pension)   pension   = data.pension;
+      syncAll();
+      status.innerHTML='<span style="color:var(--gr600)">✅ הנתונים יובאו בהצלחה!</span>';
+      updateStorageInfo();
+    }catch(err){
+      status.innerHTML=`<span style="color:var(--r600)">❌ שגיאה: ${err.message}</span>`;
+    }
+    event.target.value='';
+    setTimeout(()=>status.textContent='',4000);
+  };
+  reader.readAsText(file);
+}
+
+// ── נעילה ──
+function logoutApp(){
+  clearSession();
+  window.location.reload();
+}
+
+// ── מידע אחסון ──
+function updateStorageInfo(){
+  const el=document.getElementById('storageInfo');
+  if(!el)return;
+  try{
+    const raw=localStorage.getItem(LS_DATA)||'{}';
+    const sizeKB=Math.round(new Blob([raw]).size/1024);
+    const data=JSON.parse(raw);
+    const savedAt=data.savedAt?new Date(data.savedAt).toLocaleString('he-IL'):'לא ידוע';
+    el.innerHTML=`
+      📦 גודל הנתונים: <b>${sizeKB} KB</b><br>
+      🕒 שמירה אחרונה: <b>${savedAt}</b><br>
+      📋 הוצאות: <b>${expenses.length}</b> | הכנסות: <b>${incomes.length}</b><br>
+      💳 הלוואות: <b>${loans.length}</b> | חסכונות: <b>${savings.length}</b><br>
+      🔐 מאובטח על המכשיר בלבד
+    `;
+  }catch(e){el.textContent='לא ניתן לקרוא מידע';}
 }
 
 // ── MONTH NAV ──
@@ -1194,7 +1342,180 @@ function askQ(q){
 // ── INIT ──
 const d=new Date();
 document.getElementById('hdrDate').textContent=d.toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long'});
-syncAll();
+
+// ══════════════════════════════════════
+// 🔐 מערכת סיסמה + localStorage
+// ══════════════════════════════════════
+const LS_DATA = 'finapp_data';
+const LS_PASS = 'finapp_pass';
+const LS_SESS = 'finapp_session';
+const SESSION_MINUTES = 30; // דקות עד פג תוקף הסשן
+
+// hash פשוט (לא קריפטוגרפי — לפרטיות בסיסית בלבד)
+function hashPass(p){
+  let h=0;
+  for(let i=0;i<p.length;i++){h=((h<<5)-h)+p.charCodeAt(i);h|=0;}
+  return 'fp_'+Math.abs(h).toString(36);
+}
+
+function saveData(){
+  try{
+    localStorage.setItem(LS_DATA, JSON.stringify({expenses,incomes,loans,savings,pension,savedAt:Date.now()}));
+  }catch(e){console.warn('localStorage save failed',e);}
+}
+
+function loadData(){
+  try{
+    const raw=localStorage.getItem(LS_DATA);
+    if(!raw)return false;
+    const data=JSON.parse(raw);
+    if(data.expenses?.length) expenses=data.expenses;
+    if(data.incomes?.length)  incomes=data.incomes;
+    if(data.loans?.length)    loans=data.loans;
+    if(data.savings?.length)  savings=data.savings;
+    if(data.pension?.length)  pension=data.pension;
+    return true;
+  }catch(e){return false;}
+}
+
+function checkSession(){
+  try{
+    const s=JSON.parse(localStorage.getItem(LS_SESS)||'null');
+    if(!s)return false;
+    const age=(Date.now()-s.ts)/60000;
+    return age < SESSION_MINUTES;
+  }catch(e){return false;}
+}
+
+function saveSession(){
+  localStorage.setItem(LS_SESS, JSON.stringify({ts:Date.now()}));
+}
+
+function clearSession(){
+  localStorage.removeItem(LS_SESS);
+}
+
+function unlock(){
+  document.getElementById('lockScreen').style.display='none';
+  loadData();
+  syncAll();
+  saveSession();
+  // רענן סשן כל 5 דקות
+  setInterval(saveSession, 5*60*1000);
+  // שמירה אוטומטית כל 30 שניות
+  setInterval(saveData, 30*1000);
+}
+
+// ── כניסה ──
+let lockAttempts=0;
+function lockSubmit(){
+  const input=document.getElementById('lockInput');
+  const pass=input.value;
+  const stored=localStorage.getItem(LS_PASS);
+  const errEl=document.getElementById('lockErr');
+  const hintEl=document.getElementById('lockHint');
+
+  if(!pass){errEl.textContent='הכנס סיסמה';return;}
+
+  // אין סיסמה שמורה — הגדרה ראשונית
+  if(!stored){
+    if(pass.length<4){errEl.textContent='סיסמה לפחות 4 תווים';return;}
+    input.value='';
+    input.placeholder='אשר סיסמה ••••••';
+    document.getElementById('lockTitle').textContent='אשר סיסמה';
+    document.getElementById('lockSub').textContent='הכנס שוב את הסיסמה לאישור';
+    document.getElementById('lockBtn').textContent='✅ אישור';
+    document.getElementById('lockBtn').onclick=()=>confirmNewPass(pass);
+    hintEl.textContent='';
+    errEl.textContent='';
+    return;
+  }
+
+  // בדיקה
+  if(hashPass(pass)===stored){
+    lockAttempts=0;
+    input.value='';
+    errEl.textContent='';
+    unlock();
+  } else {
+    lockAttempts++;
+    input.value='';
+    input.focus();
+    if(lockAttempts>=5){
+      errEl.textContent=`❌ ${lockAttempts} ניסיונות כושלים`;
+      hintEl.textContent='טיפ: אם שכחת — מחק את האפליקציה והתחל מחדש';
+    } else {
+      errEl.textContent='❌ סיסמה שגויה';
+    }
+  }
+}
+
+function confirmNewPass(firstPass){
+  const input=document.getElementById('lockInput');
+  const confirm=input.value;
+  const errEl=document.getElementById('lockErr');
+  if(confirm!==firstPass){
+    errEl.textContent='❌ הסיסמאות לא תואמות';
+    input.value='';
+    return;
+  }
+  localStorage.setItem(LS_PASS, hashPass(firstPass));
+  errEl.textContent='';
+  input.value='';
+  unlock();
+}
+
+// ── שינוי סיסמה (מתוך האפליקציה) ──
+function showChangePass(){
+  const oldPass=prompt('הכנס סיסמה נוכחית:');
+  if(!oldPass)return;
+  const stored=localStorage.getItem(LS_PASS);
+  if(hashPass(oldPass)!==stored){alert('❌ סיסמה שגויה');return;}
+  const newPass=prompt('הכנס סיסמה חדשה (לפחות 4 תווים):');
+  if(!newPass||newPass.length<4){alert('סיסמה קצרה מדי');return;}
+  const confirm=prompt('אשר סיסמה חדשה:');
+  if(newPass!==confirm){alert('❌ הסיסמאות לא תואמות');return;}
+  localStorage.setItem(LS_PASS, hashPass(newPass));
+  alert('✅ הסיסמה עודכנה!');
+}
+
+// ── קריאה לשמירה אחרי כל שינוי ──
+const _origSyncAll=syncAll;
+// עטיפה של syncAll לשמירה אוטומטית
+function syncAll(){
+  renderExp();renderInc();renderLoans();renderSav();renderPension();updateSummary();
+  if(document.getElementById('p-chart').classList.contains('on'))renderCharts();
+  saveData();
+}
+
+// ── הפעלה ──
+(function init(){
+  const stored=localStorage.getItem(LS_PASS);
+  const lockHint=document.getElementById('lockHint');
+  const lockChangeBtn=document.getElementById('lockChangeBtn');
+
+  if(!stored){
+    // הפעם הראשונה — הגדר סיסמה
+    document.getElementById('lockTitle').textContent='ברוך הבא!';
+    document.getElementById('lockSub').textContent='בחר סיסמה לאפליקציה (לפחות 4 תווים)';
+    document.getElementById('lockBtn').textContent='✅ הגדר סיסמה';
+    document.getElementById('lockIcon').textContent='👋';
+    lockHint.textContent='הסיסמה נשמרת רק על המכשיר הזה';
+  } else {
+    // כניסה חוזרת — בדוק סשן
+    lockChangeBtn.style.display='block';
+    if(checkSession()){
+      // סשן פעיל — כנס ישירות
+      unlock();
+      return;
+    }
+    lockHint.textContent='הנתונים נשמרים על המכשיר בלבד 🔒';
+  }
+
+  // הצג מסך נעילה
+  document.getElementById('lockScreen').style.display='flex';
+  setTimeout(()=>document.getElementById('lockInput').focus(), 300);
+})();
 </script>
 </body>
 </html>

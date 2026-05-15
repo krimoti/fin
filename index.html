@@ -539,12 +539,6 @@ function buildProjection(n){
   return{labels,balances,incArr,expArr,cumulArr};
 }
 
-// ── SYNC ALL ──
-function syncAll(){
-  renderExp();renderInc();renderLoans();renderSav();renderPension();updateSummary();
-  if(document.getElementById('p-chart').classList.contains('on'))renderCharts();
-}
-
 // ── RENDER EXPENSES ──
 function renderExp(){
   const fixedRows=expenses.map(e=>{
@@ -665,12 +659,6 @@ function updateSummary(){
   document.getElementById('hdrMonth').textContent=MONTHS[curMon]+' '+curYear;
 }
 
-// ── SYNC ALL ──
-function syncAll(){
-  renderExp();renderInc();renderLoans();renderSav();renderPension();updateSummary();
-  if(document.getElementById('p-chart').classList.contains('on'))renderCharts();
-}
-
 // ── DELETE ──
 function delItem(type,id){
   if(type==='exp'){expenses=expenses.filter(e=>e.id!==id);syncAll();}
@@ -723,27 +711,61 @@ function importJSON(event){
   reader.onload=e=>{
     try{
       const data=JSON.parse(e.target.result);
-      // ולידציה בסיסית
       if(typeof data!=='object'||data===null)throw new Error('קובץ לא תקין');
-      const confirm=window.confirm(
-        `ייבוא גיבוי מ-${data.exportedAt?new Date(data.exportedAt).toLocaleDateString('he-IL'):'תאריך לא ידוע'}?\n\nהנתונים הנוכחיים יוחלפו!`
-      );
-      if(!confirm){event.target.value='';return;}
-      if(data.expenses)  expenses  = data.expenses;
-      if(data.incomes)   incomes   = data.incomes;
-      if(data.loans)     loans     = data.loans;
-      if(data.savings)   savings   = data.savings;
-      if(data.pension)   pension   = data.pension;
-      syncAll();
-      status.innerHTML='<span style="color:var(--gr600)">✅ הנתונים יובאו בהצלחה!</span>';
-      updateStorageInfo();
+      const dateStr=data.exportedAt
+        ?new Date(data.exportedAt).toLocaleDateString('he-IL')
+        :'תאריך לא ידוע';
+      // הצג פאנל אישור בתוך האפליקציה (ללא window.confirm)
+      showImportConfirm(data, dateStr, status);
     }catch(err){
       status.innerHTML=`<span style="color:var(--r600)">❌ שגיאה: ${err.message}</span>`;
     }
     event.target.value='';
-    setTimeout(()=>status.textContent='',4000);
   };
   reader.readAsText(file);
+}
+
+function showImportConfirm(data, dateStr, status){
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
+  overlay.innerHTML=`
+    <div style="background:#fff;border-radius:20px;padding:28px 24px;max-width:340px;width:100%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,.2)">
+      <div style="font-size:36px;margin-bottom:10px">📂</div>
+      <div style="font-size:17px;font-weight:700;color:var(--g800);margin-bottom:8px">ייבוא גיבוי</div>
+      <div style="font-size:13px;color:var(--g500);margin-bottom:6px">תאריך גיבוי: <b>${dateStr}</b></div>
+      <div style="font-size:13px;color:var(--g500);margin-bottom:4px">
+        הוצאות: ${data.expenses?.length||0} | הכנסות: ${data.incomes?.length||0}<br>
+        הלוואות: ${data.loans?.length||0} | חסכונות: ${data.savings?.length||0}
+      </div>
+      <div style="font-size:12px;color:var(--r600);margin:12px 0 18px;font-weight:600">⚠️ הנתונים הנוכחיים יוחלפו!</div>
+      <div style="display:flex;gap:10px">
+        <button onclick="this.closest('div[style*=fixed]').remove()"
+          style="flex:1;padding:12px;background:var(--g100);border:none;border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;color:var(--g700);cursor:pointer">
+          ביטול
+        </button>
+        <button id="confirmImportBtn"
+          style="flex:1;padding:12px;background:var(--b500);border:none;border-radius:var(--rs);font-family:'Heebo',sans-serif;font-size:14px;font-weight:700;color:#fff;cursor:pointer">
+          ✅ ייבא
+        </button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.querySelector('#confirmImportBtn').onclick=()=>{
+    overlay.remove();
+    doImport(data, status);
+  };
+}
+
+function doImport(data, status){
+  if(data.expenses)  expenses  = data.expenses;
+  if(data.incomes)   incomes   = data.incomes;
+  if(data.loans)     loans     = data.loans;
+  if(data.savings)   savings   = data.savings;
+  if(data.pension)   pension   = data.pension;
+  syncAll();
+  status.innerHTML='<span style="color:var(--gr600)">✅ הנתונים יובאו בהצלחה!</span>';
+  updateStorageInfo();
+  setTimeout(()=>status.textContent='',4000);
 }
 
 // ── נעילה ──

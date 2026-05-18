@@ -697,10 +697,38 @@ function expStatusLabel(e){
   return `<span class="badge bg">קבוע</span>`;
 }
 
+function loanOffsetFromBase(l){
+  // כמה חודשים מ-BASE_ABS עד תחילת ההלוואה
+  if(!l.startDate) return 0;
+  var parts=l.startDate.split('-');
+  var sy=parseInt(parts[0]), sm=parseInt(parts[1])-1;
+  var loanStartAbs=sy*12+sm;
+  return loanStartAbs-BASE_ABS; // יכול להיות שלילי אם ההלוואה כבר התחילה לפני BASE
+}
+
+function loanActiveAt(l, offsetFromBase){
+  // האם ההלוואה פעילה בחודש offsetFromBase?
+  var loanStart=loanOffsetFromBase(l);
+  // לפני תאריך ההתחלה — לא פעיל
+  if(offsetFromBase < loanStart) return false;
+  // כמה תשלומים כבר שולמו עד offsetFromBase?
+  var paymentsMade=offsetFromBase-loanStart;
+  // עוד נותרו תשלומים?
+  return paymentsMade < l.remainingPayments;
+}
+
+function loanRemainingAt(l, offsetFromBase){
+  // כמה תשלומים נותרים בחודש offsetFromBase
+  if(!loanActiveAt(l, offsetFromBase)) return 0;
+  var loanStart=loanOffsetFromBase(l);
+  var paymentsMade=offsetFromBase-loanStart;
+  return l.remainingPayments-paymentsMade;
+}
+
 function getMonthData(offsetFromBase){
   const inc=incomes.reduce((s,i)=>s+i.amount,0);
   const fixedExp=expenses.filter(e=>expenseActiveAt(e,offsetFromBase)).reduce((s,e)=>s+e.amount,0);
-  const loanExp=loans.reduce((s,l)=>s+(l.remainingPayments-offsetFromBase>0?l.monthlyPayment:0),0);
+  const loanExp=loans.reduce((s,l)=>s+(loanActiveAt(l,offsetFromBase)?l.monthlyPayment:0),0);
   return{inc,fixedExp,loanExp,totalExp:fixedExp+loanExp,balance:inc-fixedExp-loanExp};
 }
 
@@ -739,8 +767,21 @@ function renderExp(){
   }).join('');
 
   const loanRows=loans.map(l=>{
-    const rem=l.remainingPayments-monOffset;
-    if(rem<=0) return`<div class="ir" style="opacity:.4">
+    const active=loanActiveAt(l,monOffset);
+    const rem=loanRemainingAt(l,monOffset);
+    const notStarted=monOffset < loanOffsetFromBase(l);
+    if(notStarted){
+      const loanStart=loanOffsetFromBase(l);
+      const absM=BASE_ABS+loanStart;
+      const startLabel=MSHORT[absM%12]+"'"+(Math.floor(absM/12)%100);
+      return`<div class="ir" style="opacity:.6">
+        <div class="ir-main"><div class="ir-name">${l.name}</div>
+        <div class="ir-sub"><span class="badge ba">⏳ מתחיל ${startLabel}</span><span>${l.lender||''}</span></div></div>
+        <div class="ir-amt" style="color:var(--g400)">₪0</div>
+        <div class="ir-actions"><button class="ic-btn edit" onclick="openModal('loan',${l.id})">✏️</button><button class="ic-btn del" onclick="delItem('loan',${l.id})">🗑</button></div>
+      </div>`;
+    }
+    if(!active) return`<div class="ir" style="opacity:.4">
       <div class="ir-main"><div class="ir-name" style="text-decoration:line-through">${l.name}</div>
       <div class="ir-sub"><span class="badge bg">✅ סוּלקה</span><span>${l.lender||''}</span></div></div>
       <div class="ir-amt" style="color:var(--gr600)">₪0</div>
@@ -779,11 +820,17 @@ function renderLoans(){
     renderExp(); return;
   }
   cont.innerHTML=loans.map(l=>{
-    const debt=l.remainingPayments*l.monthlyPayment;
-    const pct=l.totalAmount>0?Math.min(100,Math.max(0,(1-debt/l.totalAmount)*100)):0;
+    const debt=loanRemainingAt(l,monOffset)*l.monthlyPayment;
+    const totalDebt=l.remainingPayments*l.monthlyPayment;
+    const pct=l.totalAmount>0?Math.min(100,Math.max(0,(1-totalDebt/l.totalAmount)*100)):0;
     const now=new Date();
-    const endDt=new Date(now.getFullYear(),now.getMonth()+l.remainingPayments,1);
-    const endStr=MONTHS[endDt.getMonth()]+' '+endDt.getFullYear();
+    // חשב תאריך סיום לפי startDate + remainingPayments
+    var lsAbs=BASE_ABS+loanOffsetFromBase(l);
+    var endAbs=lsAbs+l.remainingPayments;
+    const endStr=MONTHS[endAbs%12]+' '+Math.floor(endAbs/12);
+    // תאריך התחלה לתצוגה
+    var startAbs=BASE_ABS+loanOffsetFromBase(l);
+    var startStr=MONTHS[startAbs%12]+' '+Math.floor(startAbs/12);
     return`<div class="lc">
       <div style="display:flex;align-items:flex-start;gap:8px">
         <div style="flex:1;min-width:0">
@@ -800,9 +847,10 @@ function renderLoans(){
       <div class="lp"><div class="lpf" style="width:${pct}%"></div></div>
       <div style="font-size:11px;color:var(--g400)">${Math.round(pct)}% שולם מתוך ${fmt(l.totalAmount)}</div>
     </div>`;}).join('');
-  document.getElementById('lDebt').textContent=fmt(loans.reduce((s,l)=>s+l.remainingPayments*l.monthlyPayment,0));
-  document.getElementById('lMonthly').textContent=fmt(loans.reduce((s,l)=>s+(l.remainingPayments>0?l.monthlyPayment:0),0));
-  document.getElementById('lMonths').textContent=loans.length?Math.max(...loans.map(l=>l.remainingPayments)):'0';
+  document.getElementById('lDebt').textContent=fmt(loans.reduce((s,l)=>s+loanRemainingAt(l,monOffset)*l.monthlyPayment,0));
+  document.getElementById('lMonthly').textContent=fmt(loans.reduce((s,l)=>s+(loanActiveAt(l,monOffset)?l.monthlyPayment:0),0));
+  var maxRem=loans.length?Math.max.apply(null,loans.map(function(l){return loanRemainingAt(l,monOffset);})):0;
+  document.getElementById('lMonths').textContent=maxRem||'0';
   renderExp(); // סנכרון לטאב הוצאות
 }
 
@@ -975,10 +1023,10 @@ let aiTurns=0;
 function ctx(){
   const inc=incomes.reduce((s,i)=>s+i.amount,0);
   const fixedExp=expenses.filter(e=>expenseActiveAt(e,monOffset)).reduce((s,e)=>s+e.amount,0);
-  const lMon=loans.reduce((s,l)=>s+(l.remainingPayments>0?l.monthlyPayment:0),0);
+  const lMon=loans.reduce((s,l)=>s+(loanActiveAt(l,monOffset)?l.monthlyPayment:0),0);
   const totalExp=fixedExp+lMon;
   const balance=inc-totalExp;
-  const totalDebt=loans.reduce((s,l)=>s+l.remainingPayments*l.monthlyPayment,0);
+  const totalDebt=loans.reduce((s,l)=>s+loanRemainingAt(l,monOffset)*l.monthlyPayment,0);
   const totalSav=savings.reduce((s,sv)=>s+sv.amount,0);
   const totalPension=pension.reduce((s,p)=>s+p.monthly,0);
   const netWorth=totalSav-totalDebt;
@@ -1630,7 +1678,7 @@ function renderGoals(){
 function getAlerts(){
   const alerts = [];
   const c_inc = incomes.reduce((s,i) => s+i.amount, 0);
-  const c_lMon = loans.reduce((s,l) => s+(l.remainingPayments>0?l.monthlyPayment:0), 0);
+  const c_lMon = loans.reduce((s,l) => s+(loanActiveAt(l,monOffset)?l.monthlyPayment:0), 0);
   const c_exp = expenses.filter(e=>expenseActiveAt(e,monOffset)).reduce((s,e)=>s+e.amount,0);
   const balance = c_inc - c_exp - c_lMon;
 
@@ -1672,22 +1720,35 @@ function showAlerts(){
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:flex-end;justify-content:center;padding:0 0 80px';
   const clrMap = {err:'var(--r600)', warn:'var(--a600)', ok:'var(--gr600)'};
-  ov.innerHTML = `<div style="background:var(--body,#fff);border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:680px;max-height:70vh;overflow-y:auto;box-shadow:0 -4px 24px rgba(0,0,0,.15)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-      <div style="font-size:17px;font-weight:700">🔔 התראות</div>
-      <button onclick="this.closest('div[style*=fixed]').remove()" style="background:var(--g100);border:none;width:30px;height:30px;border-radius:50%;font-size:18px;cursor:pointer;color:var(--g500)">×</button>
-    </div>
-    ${alerts.map(a=>`
-      <div class="alert-item ${a.type==='ok'?'ok':a.type==='warn'?'warn':''}">
-        <div class="alert-icon">${a.icon}</div>
-        <div class="alert-text">
-          <div class="alert-title" style="color:${clrMap[a.type]||'inherit'}">${a.title}</div>
-          <div>${a.text}</div>
-        </div>
-      </div>`).join('')}
-  </div>`;
-  ov.onclick = e => { if(e.target===ov) ov.remove(); };
+
+  function closeAlerts(){ ov.remove(); document.removeEventListener('keydown', onKey); }
+  function onKey(e){ if(e.key==='Escape'||e.key==='Enter'){ e.preventDefault(); e.stopPropagation(); closeAlerts(); } }
+
+  ov.innerHTML = '<div style="background:#fff;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:680px;max-height:70vh;overflow-y:auto;box-shadow:0 -4px 24px rgba(0,0,0,.15)">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'
+    +'<div style="font-size:17px;font-weight:700">🔔 התראות</div>'
+    +'<button id="alertCloseBtn" style="background:var(--g100);border:none;width:34px;height:34px;border-radius:50%;font-size:20px;cursor:pointer;color:var(--g500)">×</button>'
+    +'</div>'
+    + alerts.map(function(a){
+        return '<div class="alert-item '+(a.type==='ok'?'ok':a.type==='warn'?'warn':'')+'">'
+          +'<div class="alert-icon">'+a.icon+'</div>'
+          +'<div class="alert-text">'
+          +'<div class="alert-title" style="color:'+(clrMap[a.type]||'inherit')+'">'+a.title+'</div>'
+          +'<div>'+a.text+'</div>'
+          +'</div></div>';
+      }).join('')
+    +'</div>';
+
+  // לחיצה על הרקע הכהה בלבד סוגרת
+  ov.addEventListener('click', function(e){ if(e.target===ov) closeAlerts(); });
   document.body.appendChild(ov);
+
+  // כפתור X
+  var closeBtn = document.getElementById('alertCloseBtn');
+  if(closeBtn) closeBtn.addEventListener('click', function(e){ e.stopPropagation(); closeAlerts(); });
+
+  // מקלדת — Escape או Enter סוגרים
+  document.addEventListener('keydown', onKey);
 }
 
 // ══════════════════════════════════════
@@ -1804,7 +1865,9 @@ function saveItem(type){
     var monthlyPayment=parseFloat((document.getElementById('fMon')||{}).value)||0;
     var remainingPayments=parseInt((document.getElementById('fRem')||{}).value)||0;
     var lender=((document.getElementById('fLen')||{}).value)||'';
-    var startDate=((document.getElementById('fStart')||{}).value)||new Date().toISOString().slice(0,7);
+    var startM=((document.getElementById('fStartM')||{}).value)||('0'+(new Date().getMonth()+1)).slice(-2);
+    var startY=((document.getElementById('fStartY')||{}).value)||String(new Date().getFullYear());
+    var startDate=startY+'-'+startM;
     var interest=parseFloat(((document.getElementById('fInt')||{}).value)||0)||0;
     var note=((document.getElementById('fNt')||{}).value)||'';
     if(!name||!monthlyPayment){closeMo();return;}
@@ -1910,7 +1973,22 @@ function openModal(type, id){
       +'<div class="fg"><label class="fl">תשלום חודשי ₪</label><input class="fi" id="fMon" type="number" inputmode="decimal" placeholder="0" value="'+(item&&item.monthlyPayment||'')+'"></div></div>'
       +'<div class="fr"><div class="fg"><label class="fl">תשלומים נותרים</label><input class="fi" id="fRem" type="number" inputmode="numeric" placeholder="0" value="'+(item&&item.remainingPayments||'')+'"></div>'
       +'<div class="fg"><label class="fl">גוף מלווה</label><input class="fi" id="fLen" placeholder="בנק / אשראי" value="'+(item&&item.lender||'')+'"></div></div>'
-      +'<div class="fr"><div class="fg"><label class="fl">תאריך תשלום ראשון</label><input class="fi" id="fStart" type="month" value="'+(item&&item.startDate||todayStr)+'"></div>'
+      +'<div class="fr"><div class="fg"><label class="fl">תאריך תשלום ראשון</label>'
+      +'<div style="display:flex;gap:6px">'
+      +'<select class="fi" id="fStartM" style="flex:1">'
+      +['01','02','03','04','05','06','07','08','09','10','11','12'].map(function(m,idx){
+        var mName=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'][idx];
+        var sel=(item&&item.startDate&&item.startDate.split('-')[1]===m)||(!item&&m==='0'+(new Date().getMonth()+1).toString().padStart(2,'0'))?'selected':'';
+        return '<option value="'+m+'" '+sel+'>'+mName+'</option>';
+      }).join('')
+      +'</select>'
+      +'<select class="fi" id="fStartY" style="flex:1">'
+      +[2024,2025,2026,2027,2028,2029,2030].map(function(y){
+        var sel=(item&&item.startDate&&parseInt(item.startDate.split('-')[0])===y)||(!item&&y===new Date().getFullYear())?'selected':'';
+        return '<option value="'+y+'" '+sel+'>'+y+'</option>';
+      }).join('')
+      +'</select>'
+      +'</div></div>'
       +'<div class="fg"><label class="fl">ריבית שנתית %</label><input class="fi" id="fInt" type="number" inputmode="decimal" placeholder="0" value="'+(item&&item.interest||'')+'"></div></div>'
       +'<div class="fg"><label class="fl">הערות</label><input class="fi" id="fNt" placeholder="" value="'+(item&&item.note||'')+'"></div>'
       +actionRow;

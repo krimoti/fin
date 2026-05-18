@@ -820,33 +820,68 @@ function renderLoans(){
     renderExp(); return;
   }
   cont.innerHTML=loans.map(l=>{
-    const debt=loanRemainingAt(l,monOffset)*l.monthlyPayment;
     const totalDebt=l.remainingPayments*l.monthlyPayment;
-    const pct=l.totalAmount>0?Math.min(100,Math.max(0,(1-totalDebt/l.totalAmount)*100)):0;
-    const now=new Date();
-    // חשב תאריך סיום לפי startDate + remainingPayments
+    const paidDebt=l.totalAmount-totalDebt;
+    const pct=l.totalAmount>0?Math.min(100,Math.max(0,(paidDebt/l.totalAmount)*100)):0;
     var lsAbs=BASE_ABS+loanOffsetFromBase(l);
     var endAbs=lsAbs+l.remainingPayments;
     const endStr=MONTHS[endAbs%12]+' '+Math.floor(endAbs/12);
-    // תאריך התחלה לתצוגה
     var startAbs=BASE_ABS+loanOffsetFromBase(l);
-    var startStr=MONTHS[startAbs%12]+' '+Math.floor(startAbs/12);
-    return`<div class="lc">
-      <div style="display:flex;align-items:flex-start;gap:8px">
-        <div style="flex:1;min-width:0">
-          <div style="font-weight:600;font-size:13px">${l.name}</div>
-          <div style="font-size:11px;color:var(--g500);margin-top:1px">${l.lender||''}${l.note?' · '+l.note:''} · גמר: ${endStr}</div>
-        </div>
-        <div class="ir-actions"><button class="ic-btn edit" onclick="openModal('loan',${l.id})">✏️</button><button class="ic-btn del" onclick="delItem('loan',${l.id})">🗑</button></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-top:10px;gap:4px">
-        <div><div style="font-size:10px;color:var(--g500)">חוב נותר</div><div style="font-size:16px;font-weight:700;color:var(--r600)">${fmt(debt)}</div></div>
-        <div style="text-align:center"><div style="font-size:10px;color:var(--g500)">חודשי</div><div style="font-size:16px;font-weight:700;color:var(--b600)">${fmt(l.monthlyPayment)}</div></div>
-        <div style="text-align:left"><div style="font-size:10px;color:var(--g500)">נותרו</div><div style="font-size:16px;font-weight:700;color:var(--g700)">${l.remainingPayments}</div></div>
-      </div>
-      <div class="lp"><div class="lpf" style="width:${pct}%"></div></div>
-      <div style="font-size:11px;color:var(--g400)">${Math.round(pct)}% שולם מתוך ${fmt(l.totalAmount)}</div>
-    </div>`;}).join('');
+    const startStr=MONTHS[startAbs%12]+' '+Math.floor(startAbs/12);
+    const notStarted=monOffset<loanOffsetFromBase(l);
+    const startNote=notStarted?(' · <span style="color:var(--a600)">מתחיל '+startStr+'</span>'):'';
+
+    // טבלת פירוט חודשי — 6 חודשים קדימה מתאריך ההתחלה
+    var tableRows='';
+    var loanStart=loanOffsetFromBase(l);
+    var showFrom=Math.max(loanStart, monOffset); // מהחודש הנוכחי או תחילת ההלוואה
+    for(var i=0;i<6;i++){
+      var off=showFrom+i;
+      var rem=loanRemainingAt(l,off);
+      if(rem<=0) break;
+      var absM=BASE_ABS+off;
+      var mLabel=MSHORT[absM%12]+"'"+(Math.floor(absM/12)%100);
+      var debtThisMonth=rem*l.monthlyPayment;
+      var isNow=(off===monOffset);
+      tableRows+='<tr style="'+(isNow?'font-weight:700;background:var(--b50)':'')+'">'
+        +'<td style="padding:5px 8px;font-size:12px;color:var(--g600)">'+mLabel+'</td>'
+        +'<td style="padding:5px 8px;font-size:12px;color:var(--r600)">'+fmt(l.monthlyPayment)+'</td>'
+        +'<td style="padding:5px 8px;font-size:12px;color:var(--g700)">'+rem+'</td>'
+        +'<td style="padding:5px 8px;font-size:12px;color:var(--g800)">'+fmt(debtThisMonth)+'</td>'
+        +'</tr>';
+    }
+
+    return'<div class="lc">'
+      +'<div style="display:flex;align-items:flex-start;gap:8px">'
+      +'<div style="flex:1;min-width:0">'
+      +'<div style="font-weight:600;font-size:13px">'+l.name+'</div>'
+      +'<div style="font-size:11px;color:var(--g500);margin-top:1px">'+(l.lender||'')+(l.note?' · '+l.note:'')+' · גמר: '+endStr+startNote+'</div>'
+      +'</div>'
+      +'<div class="ir-actions"><button class="ic-btn edit" onclick="openModal(\'loan\','+l.id+')">✏️</button><button class="ic-btn del" onclick="delItem(\'loan\','+l.id+')">🗑</button></div>'
+      +'</div>'
+      +'<div style="display:flex;justify-content:space-between;margin-top:10px;gap:4px">'
+      +'<div><div style="font-size:10px;color:var(--g500)">חוב כולל נותר</div><div style="font-size:16px;font-weight:700;color:var(--r600)">'+fmt(totalDebt)+'</div></div>'
+      +'<div style="text-align:center"><div style="font-size:10px;color:var(--g500)">חודשי</div><div style="font-size:16px;font-weight:700;color:var(--b600)">'+fmt(l.monthlyPayment)+'</div></div>'
+      +'<div style="text-align:left"><div style="font-size:10px;color:var(--g500)">תשלומים</div><div style="font-size:16px;font-weight:700;color:var(--g700)">'+l.remainingPayments+'</div></div>'
+      +'</div>'
+      +'<div class="lp"><div class="lpf" style="width:'+pct+'%"></div></div>'
+      +'<div style="font-size:11px;color:var(--g400)">'+Math.round(pct)+'% שולם מתוך '+fmt(l.totalAmount)+'</div>'
+      +(tableRows?
+        '<div style="margin-top:10px;border-radius:8px;overflow:hidden;border:1px solid var(--g100)">'
+        +'<table style="width:100%;border-collapse:collapse">'
+        +'<thead><tr style="background:var(--g50)">'
+        +'<th style="padding:5px 8px;font-size:10px;color:var(--g500);font-weight:600;text-align:right">חודש</th>'
+        +'<th style="padding:5px 8px;font-size:10px;color:var(--g500);font-weight:600;text-align:right">תשלום</th>'
+        +'<th style="padding:5px 8px;font-size:10px;color:var(--g500);font-weight:600;text-align:right">נותרו</th>'
+        +'<th style="padding:5px 8px;font-size:10px;color:var(--g500);font-weight:600;text-align:right">יתרת חוב</th>'
+        +'</tr></thead>'
+        +'<tbody>'+tableRows+'</tbody>'
+        +'</table>'
+        +'<div style="padding:4px 8px;font-size:10px;color:var(--g400);text-align:left">... מוצגים 6 חודשים קרובים</div>'
+        +'</div>'
+      :'')
+      +'</div>';
+  }).join('');
   document.getElementById('lDebt').textContent=fmt(loans.reduce((s,l)=>s+loanRemainingAt(l,monOffset)*l.monthlyPayment,0));
   document.getElementById('lMonthly').textContent=fmt(loans.reduce((s,l)=>s+(loanActiveAt(l,monOffset)?l.monthlyPayment:0),0));
   var maxRem=loans.length?Math.max.apply(null,loans.map(function(l){return loanRemainingAt(l,monOffset);})):0;

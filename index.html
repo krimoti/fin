@@ -436,6 +436,7 @@ body.dark .log-item { border-color: #2a3a5c; }
     <div class="sc"><div class="sc-lbl">✅ יתרה</div><div class="sc-val" id="sBal">₪0</div><div class="sc-sub">חודשי נטו</div></div>
     <div class="sc"><div class="sc-lbl">🏦 חסכונות</div><div class="sc-val pos" id="sSav">₪0</div><div class="sc-sub">סה"כ</div></div>
   </div>
+  <div class="sc" style="margin-bottom:12px" id="healthScore"></div>
 
   <!-- PANELS -->
   <div class="panel on" id="p-exp">
@@ -1897,7 +1898,6 @@ function saveItem(type){
   } else if(type==='loan'){
     var name=(document.getElementById('fN')||{}).value.trim();
     var totalAmount=parseFloat((document.getElementById('fTot')||{}).value)||0;
-    var monthlyPayment=parseFloat((document.getElementById('fMon')||{}).value)||0;
     var remainingPayments=parseInt((document.getElementById('fRem')||{}).value)||0;
     var lender=((document.getElementById('fLen')||{}).value)||'';
     var startM=((document.getElementById('fStartM')||{}).value)||('0'+(new Date().getMonth()+1)).slice(-2);
@@ -1905,7 +1905,16 @@ function saveItem(type){
     var startDate=startY+'-'+startM;
     var interest=parseFloat(((document.getElementById('fInt')||{}).value)||0)||0;
     var note=((document.getElementById('fNt')||{}).value)||'';
-    if(!name||!monthlyPayment){closeMo();return;}
+    if(!name||!totalAmount||!remainingPayments){closeMo();return;}
+    // ── חישוב תשלום חודשי אוטומטי לפי ריבית ──
+    var monthlyPayment;
+    if(interest<=0){
+      monthlyPayment=totalAmount/remainingPayments;
+    } else {
+      var r=interest/100/12;
+      monthlyPayment=totalAmount*(r*Math.pow(1+r,remainingPayments))/(Math.pow(1+r,remainingPayments)-1);
+    }
+    monthlyPayment=Math.round(monthlyPayment*100)/100;
     if(editId){var l=loans.find(function(x){return x.id===editId;});if(l){l.name=name;l.totalAmount=totalAmount;l.monthlyPayment=monthlyPayment;l.remainingPayments=remainingPayments;l.lender=lender;l.startDate=startDate;l.interest=interest;l.note=note;}}
     else loans.push({id:Date.now(),name:name,totalAmount:totalAmount,monthlyPayment:monthlyPayment,remainingPayments:remainingPayments,lender:lender,startDate:startDate,interest:interest,note:note});
     syncAll();
@@ -1930,7 +1939,7 @@ function saveItem(type){
   // ── log the action ──
   try{
     var logName=(document.getElementById('fN')||{}).value||'?';
-    var logAmt=parseFloat((document.getElementById('fA')||{}).value||(document.getElementById('fMon')||{}).value)||0;
+    var logAmt=parseFloat((document.getElementById('fA')||{}).value||(document.getElementById('fTot')||{}).value)||0;
     addLog(isEdit?'edit':'add',logName,logAmt,type);
   }catch(e){}
   updateAlertBadge();
@@ -2004,16 +2013,28 @@ function openModal(type, id){
       +'</select></div></div>'+actionRow;
   } else if(type==='loan'){
     body='<div class="fg"><label class="fl">שם ההלוואה</label><input class="fi" id="fN" placeholder="הלוואת בנק..." value="'+(item&&item.name||'')+'"></div>'
-      +'<div class="fr"><div class="fg"><label class="fl">סכום מקורי ₪</label><input class="fi" id="fTot" type="number" inputmode="decimal" placeholder="0" value="'+(item&&item.totalAmount||'')+'"></div>'
-      +'<div class="fg"><label class="fl">תשלום חודשי ₪</label><input class="fi" id="fMon" type="number" inputmode="decimal" placeholder="0" value="'+(item&&item.monthlyPayment||'')+'"></div></div>'
-      +'<div class="fr"><div class="fg"><label class="fl">תשלומים נותרים</label><input class="fi" id="fRem" type="number" inputmode="numeric" placeholder="0" value="'+(item&&item.remainingPayments||'')+'"></div>'
-      +'<div class="fg"><label class="fl">גוף מלווה</label><input class="fi" id="fLen" placeholder="בנק / אשראי" value="'+(item&&item.lender||'')+'"></div></div>'
+      +'<div class="fr">'
+      +'<div class="fg"><label class="fl">סכום מקורי ₪</label><input class="fi" id="fTot" type="number" inputmode="decimal" placeholder="0" value="'+(item&&item.totalAmount||'')+'" oninput="calcLoanPayment()"></div>'
+      +'<div class="fg"><label class="fl">ריבית שנתית %</label><input class="fi" id="fInt" type="number" inputmode="decimal" placeholder="0" value="'+(item&&item.interest||'')+'" oninput="calcLoanPayment()"></div>'
+      +'</div>'
+      +'<div class="fr">'
+      +'<div class="fg"><label class="fl">מספר תשלומים</label><input class="fi" id="fRem" type="number" inputmode="numeric" placeholder="0" value="'+(item&&item.remainingPayments||'')+'" oninput="calcLoanPayment()"></div>'
+      +'<div class="fg"><label class="fl">גוף מלווה</label><input class="fi" id="fLen" placeholder="בנק / אשראי" value="'+(item&&item.lender||'')+'"></div>'
+      +'</div>'
+      +'<div style="background:var(--b50);border-radius:10px;padding:12px 14px;margin-bottom:12px;border:1px solid var(--b100)">'
+      +'<div style="font-size:11px;color:var(--b700);font-weight:600;margin-bottom:6px">🔢 חישוב אוטומטי</div>'
+      +'<div style="display:flex;justify-content:space-between;align-items:center">'
+      +'<div><div style="font-size:11px;color:var(--g500)">תשלום חודשי</div><div style="font-size:20px;font-weight:700;color:var(--b600)" id="calcMonthly">'+(item&&item.monthlyPayment?fmt(item.monthlyPayment):'—')+'</div></div>'
+      +'<div style="text-align:center"><div style="font-size:11px;color:var(--g500)">סה״כ תשלומים</div><div style="font-size:16px;font-weight:600;color:var(--g700)" id="calcTotal">—</div></div>'
+      +'<div style="text-align:left"><div style="font-size:11px;color:var(--g500)">עלות ריבית</div><div style="font-size:16px;font-weight:600;color:var(--r600)" id="calcInterest">—</div></div>'
+      +'</div>'
+      +'</div>'
       +'<div class="fr"><div class="fg"><label class="fl">תאריך תשלום ראשון</label>'
       +'<div style="display:flex;gap:6px">'
       +'<select class="fi" id="fStartM" style="flex:1">'
       +['01','02','03','04','05','06','07','08','09','10','11','12'].map(function(m,idx){
         var mName=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'][idx];
-        var sel=(item&&item.startDate&&item.startDate.split('-')[1]===m)||(!item&&m==='0'+(new Date().getMonth()+1).toString().padStart(2,'0'))?'selected':'';
+        var sel=(item&&item.startDate&&item.startDate.split('-')[1]===m)||(!item&&m===('0'+(new Date().getMonth()+1)).slice(-2))?'selected':'';
         return '<option value="'+m+'" '+sel+'>'+mName+'</option>';
       }).join('')
       +'</select>'
@@ -2024,8 +2045,7 @@ function openModal(type, id){
       }).join('')
       +'</select>'
       +'</div></div>'
-      +'<div class="fg"><label class="fl">ריבית שנתית %</label><input class="fi" id="fInt" type="number" inputmode="decimal" placeholder="0" value="'+(item&&item.interest||'')+'"></div></div>'
-      +'<div class="fg"><label class="fl">הערות</label><input class="fi" id="fNt" placeholder="" value="'+(item&&item.note||'')+'"></div>'
+      +'<div class="fg"><label class="fl">הערות</label><input class="fi" id="fNt" placeholder="" value="'+(item&&item.note||'')+'"></div></div>'
       +actionRow;
   } else if(type==='sav'){
     body='<div class="fg"><label class="fl">שם הקרן</label><input class="fi" id="fN" placeholder="קרן השתלמות..." value="'+(item&&item.name||'')+'"></div>'
@@ -2046,6 +2066,80 @@ function openModal(type, id){
   document.getElementById('mo').classList.add('on');
   setTimeout(function(){var inp=document.querySelector('#moBody input');if(inp)inp.focus();},200);
 
+}
+
+// ── מחשבון ריבית ──
+function calcLoanPayment(){
+  var P=parseFloat((document.getElementById('fTot')||{}).value)||0;
+  var annualRate=parseFloat((document.getElementById('fInt')||{}).value)||0;
+  var n=parseInt((document.getElementById('fRem')||{}).value)||0;
+  var mEl=document.getElementById('calcMonthly');
+  var tEl=document.getElementById('calcTotal');
+  var iEl=document.getElementById('calcInterest');
+  if(!mEl) return;
+  if(!P||!n){mEl.textContent='—';if(tEl)tEl.textContent='—';if(iEl)iEl.textContent='—';return;}
+  var monthly;
+  if(annualRate===0){
+    monthly=P/n;
+  } else {
+    var r=annualRate/100/12;
+    monthly=P*(r*Math.pow(1+r,n))/(Math.pow(1+r,n)-1);
+  }
+  var total=monthly*n;
+  var interest=total-P;
+  mEl.textContent=fmt(Math.round(monthly));
+  if(tEl)tEl.textContent=fmt(Math.round(total));
+  if(iEl)iEl.textContent='+'+fmt(Math.round(interest));
+}
+
+// ── מד בריאות פיננסית (0-100) ──
+function calcHealthScore(){
+  var inc=incomes.reduce(function(s,i){return s+i.amount;},0);
+  if(!inc) return {score:0,label:'אין נתונים',color:'var(--g400)'};
+  var exp=expenses.filter(function(e){return expenseActiveAt(e,monOffset);}).reduce(function(s,e){return s+e.amount;},0);
+  var lMon=loans.reduce(function(s,l){return s+(loanActiveAt(l,monOffset)?l.monthlyPayment:0);},0);
+  var totalExp=exp+lMon;
+  var balance=inc-totalExp;
+  var totalDebt=loans.reduce(function(s,l){return s+l.remainingPayments*l.monthlyPayment;},0);
+  var totalSav=savings.reduce(function(s,sv){return s+sv.amount;},0);
+
+  var score=100;
+  // יתרה שלילית — מינוס 40
+  if(balance<0) score-=40;
+  else if(balance/inc<0.1) score-=20;
+  else if(balance/inc<0.2) score-=10;
+  // הוצאות מעל 80% — מינוס 20
+  var expRatio=totalExp/inc;
+  if(expRatio>0.9) score-=20;
+  else if(expRatio>0.8) score-=10;
+  else if(expRatio>0.7) score-=5;
+  // חוב גבוה ביחס להכנסה שנתית — מינוס 20
+  var debtToIncome=totalDebt/(inc*12);
+  if(debtToIncome>3) score-=20;
+  else if(debtToIncome>2) score-=10;
+  else if(debtToIncome>1) score-=5;
+  // חסכונות — בונוס עד +10
+  var savRatio=totalSav/(inc*12);
+  if(savRatio>3) score+=10;
+  else if(savRatio>1) score+=5;
+  else if(savRatio>0.5) score+=2;
+
+  score=Math.max(0,Math.min(100,score));
+  var label=score>=80?'מצוין 💪':score>=60?'טוב 👍':score>=40?'גבולי ⚠️':'קשה 🔴';
+  var color=score>=80?'var(--gr600)':score>=60?'var(--b600)':score>=40?'var(--a600)':'var(--r600)';
+  return {score:score,label:label,color:color};
+}
+
+function updateHealthScore(){
+  var el=document.getElementById('healthScore');
+  if(!el) return;
+  var h=calcHealthScore();
+  el.innerHTML='<div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.4px;color:var(--g500);margin-bottom:3px">💪 בריאות פיננסית</div>'
+    +'<div style="font-size:19px;font-weight:700;color:'+h.color+'">'+h.score+'/100</div>'
+    +'<div style="font-size:10px;color:var(--g400);margin-top:1px">'+h.label+'</div>'
+    +'<div style="height:4px;background:var(--g200);border-radius:2px;margin-top:6px;overflow:hidden">'
+    +'<div style="height:100%;width:'+h.score+'%;background:'+h.color+';border-radius:2px;transition:width .5s"></div>'
+    +'</div>';
 }
 
 // ══════════════════════════════════════
@@ -2146,6 +2240,7 @@ function syncAll(){
   if(document.getElementById('p-chart').classList.contains('on')) renderCharts();
   saveData();
   updateAlertBadge();
+  updateHealthScore();
 }
 
 // ── INIT EXTRAS (called after unlock) ──
@@ -2156,6 +2251,7 @@ function initExtras(){
   renderLog();
   updateAlertBadge();
   updateLogBadge();
+  updateHealthScore();
 }
 
 </script>

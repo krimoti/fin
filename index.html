@@ -624,6 +624,85 @@ body.dark .log-item { border-color: #2a3a5c; }
   </div>
 
 
+  <!-- SIMULATOR PANEL -->
+  <div class="panel" id="p-sim">
+    <div class="pc">
+      <div class="ph">
+        <div class="pt">🎚️ סימולטור מה-אם</div>
+        <button class="btn-add" style="background:var(--g500)" onclick="resetSim()">↺ איפוס</button>
+      </div>
+      <p style="font-size:12px;color:var(--g500);margin-bottom:14px">הזז את הסליידרים ובדוק את ההשפעה — <b>הנתונים האמיתיים לא משתנים!</b></p>
+
+      <!-- שינוי הכנסה -->
+      <div style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label style="font-size:13px;font-weight:600">💰 שינוי הכנסה חודשית</label>
+          <span style="font-size:14px;font-weight:700;color:var(--gr600)" id="simIncLabel">+₪0</span>
+        </div>
+        <input type="range" id="simInc" min="-5000" max="10000" step="100" value="0"
+          oninput="updateSim()" style="width:100%;accent-color:var(--b500)">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--g400)"><span>-₪5,000</span><span>+₪10,000</span></div>
+      </div>
+
+      <!-- שינוי הוצאות -->
+      <div style="margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label style="font-size:13px;font-weight:600">📉 שינוי הוצאות חודשיות</label>
+          <span style="font-size:14px;font-weight:700;color:var(--r600)" id="simExpLabel">+₪0</span>
+        </div>
+        <input type="range" id="simExp" min="-5000" max="5000" step="100" value="0"
+          oninput="updateSim()" style="width:100%;accent-color:var(--r600)">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--g400)"><span>-₪5,000</span><span>+₪5,000</span></div>
+      </div>
+
+      <!-- הקדמת הלוואה -->
+      <div style="margin-bottom:16px" id="simLoanSection">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <label style="font-size:13px;font-weight:600">💳 תשלום חד-פעמי להלוואה</label>
+          <span style="font-size:14px;font-weight:700;color:var(--a600)" id="simLoanLabel">₪0</span>
+        </div>
+        <input type="range" id="simLoan" min="0" max="50000" step="1000" value="0"
+          oninput="updateSim()" style="width:100%;accent-color:var(--a600)">
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--g400)"><span>₪0</span><span>₪50,000</span></div>
+      </div>
+    </div>
+
+    <!-- תוצאות -->
+    <div class="pc" style="background:var(--sky-50,#f0f9ff);border:1.5px solid var(--b100)">
+      <div class="pt" style="margin-bottom:12px">📊 תוצאת הסימולציה</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div class="sb" style="text-align:right">
+          <div class="sb-lbl">יתרה חודשית</div>
+          <div class="sb-val" id="simResBalance" style="font-size:18px">₪0</div>
+          <div style="font-size:10px;color:var(--g400)" id="simResBalanceDiff"></div>
+        </div>
+        <div class="sb" style="text-align:right">
+          <div class="sb-lbl">בריאות פיננסית</div>
+          <div class="sb-val" id="simResHealth" style="font-size:18px">—</div>
+          <div style="font-size:10px;color:var(--g400)" id="simResHealthDiff"></div>
+        </div>
+        <div class="sb" style="text-align:right">
+          <div class="sb-lbl">צבירה שנתית</div>
+          <div class="sb-val" id="simResYear" style="font-size:16px">₪0</div>
+        </div>
+        <div class="sb" style="text-align:right">
+          <div class="sb-lbl">חיסכון ריבית</div>
+          <div class="sb-val pos" id="simResInterest" style="font-size:16px">₪0</div>
+        </div>
+      </div>
+
+      <!-- גרף השוואה -->
+      <div style="font-size:12px;font-weight:600;color:var(--g600);margin-bottom:8px">📈 יתרה חודשית — 12 חודשים קדימה</div>
+      <div style="position:relative;height:120px;background:white;border-radius:8px;border:1px solid var(--g200);overflow:hidden" id="simChart">
+        <canvas id="simCanvas" style="width:100%;height:120px"></canvas>
+      </div>
+      <div style="display:flex;gap:16px;margin-top:8px;font-size:11px">
+        <span><span style="display:inline-block;width:12px;height:3px;background:var(--b500);border-radius:2px;vertical-align:middle;margin-left:4px"></span>נוכחי</span>
+        <span><span style="display:inline-block;width:12px;height:3px;background:var(--gr600);border-radius:2px;vertical-align:middle;margin-left:4px"></span>סימולציה</span>
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- BOTTOM TABS -->
@@ -635,6 +714,7 @@ body.dark .log-item { border-color: #2a3a5c; }
   <button class="tb" onclick="sw('goals')" id="t-goals"><span class="tb-ic">🎯</span><span class="tb-lb">יעדים</span></button>
   <button class="tb" onclick="sw('log')" id="t-log"><span class="tb-ic" style="position:relative">📅<span class="tb-badge" id="logBadge"></span></span><span class="tb-lb">יומן</span></button>
   <button class="tb" onclick="sw('chart')" id="t-chart"><span class="tb-ic">📈</span><span class="tb-lb">גרפים</span></button>
+  <button class="tb" onclick="sw('sim')" id="t-sim"><span class="tb-ic">🎚️</span><span class="tb-lb">סימולטור</span></button>
   <button class="tb" onclick="sw('backup')" id="t-backup"><span class="tb-ic">💾</span><span class="tb-lb">גיבוי</span></button>
 </nav>
 
@@ -2143,22 +2223,159 @@ function updateHealthScore(){
 }
 
 // ══════════════════════════════════════
-// OVERRIDE sw() for log badge reset
+// 🎚️ SIMULATOR — מה-אם
 // ══════════════════════════════════════
-function sw(name){
-  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on');});
-  document.querySelectorAll('.tb').forEach(function(b){b.classList.remove('on');});
-  var pEl=document.getElementById('p-'+name);
-  var tEl=document.getElementById('t-'+name);
-  if(pEl) pEl.classList.add('on');
-  if(tEl) tEl.classList.add('on');
-  if(name==='chart') setTimeout(renderCharts,60);
-  if(name==='backup') updateStorageInfo();
-  window.scrollTo({top:0,behavior:'smooth'});
-  if(name==='log'){
-    lastLogCount=transLog.length;
-    var badge=document.getElementById('logBadge');
-    if(badge) badge.style.display='none';
+var simChart = null;
+
+function resetSim(){
+  var els = ['simInc','simExp','simLoan'];
+  els.forEach(function(id){ var el=document.getElementById(id); if(el) el.value=0; });
+  updateSim();
+}
+
+function updateSim(){
+  var dInc = parseInt((document.getElementById('simInc')||{}).value)||0;
+  var dExp = parseInt((document.getElementById('simExp')||{}).value)||0;
+  var dLoan = parseInt((document.getElementById('simLoan')||{}).value)||0;
+
+  // Labels
+  var incLabel = document.getElementById('simIncLabel');
+  var expLabel = document.getElementById('simExpLabel');
+  var loanLabel = document.getElementById('simLoanLabel');
+  if(incLabel) incLabel.textContent = (dInc>=0?'+':'')+fmt(dInc);
+  if(incLabel) incLabel.style.color = dInc>=0?'var(--gr600)':'var(--r600)';
+  if(expLabel) expLabel.textContent = (dExp>=0?'+':'')+fmt(dExp);
+  if(expLabel) expLabel.style.color = dExp<=0?'var(--gr600)':'var(--r600)';
+  if(loanLabel) loanLabel.textContent = fmt(dLoan);
+
+  // Current state
+  var realInc = incomes.reduce(function(s,i){return s+i.amount;},0);
+  var realExp = expenses.filter(function(e){return expenseActiveAt(e,monOffset);}).reduce(function(s,e){return s+e.amount;},0);
+  var realLoan = loans.reduce(function(s,l){return s+(loanActiveAt(l,monOffset)?l.monthlyPayment:0);},0);
+  var realBal = realInc - realExp - realLoan;
+  var realHealth = calcHealthScore().score;
+
+  // Simulated state
+  var simInc = realInc + dInc;
+  var simExpTotal = realExp + dExp;
+  var simLoanMon = realLoan; // loan monthly stays same (extra payment reduces future)
+  var simBal = simInc - simExpTotal - simLoanMon;
+
+  // Interest saved from extra loan payment
+  var interestSaved = 0;
+  if(dLoan > 0 && loans.length > 0){
+    // Find highest interest loan
+    var bigLoan = loans.reduce(function(a,b){ return (b.interest||0)>(a.interest||0)?b:a; }, loans[0]);
+    if(bigLoan && bigLoan.interest > 0){
+      var r = bigLoan.interest/100/12;
+      var monthsSaved = Math.floor(dLoan/bigLoan.monthlyPayment);
+      interestSaved = monthsSaved * bigLoan.monthlyPayment * (bigLoan.interest/100/12) * bigLoan.remainingPayments;
+      interestSaved = Math.max(0, Math.min(interestSaved, dLoan * (bigLoan.interest/100)));
+    } else {
+      // No interest data — estimate
+      interestSaved = 0;
+    }
+  }
+
+  // Simulated health score
+  var simHealthScore = realHealth;
+  if(simBal > realBal) simHealthScore = Math.min(100, simHealthScore + Math.round((simBal-realBal)/realInc*50));
+  else if(simBal < realBal) simHealthScore = Math.max(0, simHealthScore - Math.round((realBal-simBal)/realInc*50));
+  var simHealth = simHealthScore >= 80?'מצוין 💪':simHealthScore>=60?'טוב 👍':simHealthScore>=40?'גבולי ⚠️':'קשה 🔴';
+  var simColor = simHealthScore>=80?'var(--gr600)':simHealthScore>=60?'var(--b600)':simHealthScore>=40?'var(--a600)':'var(--r600)';
+
+  // Update result cards
+  var balEl=document.getElementById('simResBalance');
+  var balDiff=document.getElementById('simResBalanceDiff');
+  var healthEl=document.getElementById('simResHealth');
+  var healthDiff=document.getElementById('simResHealthDiff');
+  var yearEl=document.getElementById('simResYear');
+  var intEl=document.getElementById('simResInterest');
+
+  if(balEl){ balEl.textContent=fmt(simBal); balEl.style.color=simBal>=0?'var(--gr600)':'var(--r600)'; }
+  if(balDiff){
+    var diff=simBal-realBal;
+    balDiff.textContent=(diff>=0?'▲+':'▼')+fmt(Math.abs(diff))+' מהנוכחי';
+    balDiff.style.color=diff>=0?'var(--gr600)':'var(--r600)';
+  }
+  if(healthEl){ healthEl.textContent=simHealthScore+'/100'; healthEl.style.color=simColor; }
+  if(healthDiff){
+    var hdiff=simHealthScore-realHealth;
+    healthDiff.textContent=(hdiff>=0?'▲+':'▼')+hdiff+' נקודות';
+    healthDiff.style.color=hdiff>=0?'var(--gr600)':'var(--r600)';
+  }
+  if(yearEl){ yearEl.textContent=fmt(simBal*12); yearEl.style.color=simBal>=0?'var(--gr600)':'var(--r600)'; }
+  if(intEl){ intEl.textContent=interestSaved>0?'+'+fmt(Math.round(interestSaved)):'₪0'; }
+
+  // Draw comparison chart
+  drawSimChart(realBal, simBal, dLoan);
+}
+
+function drawSimChart(realBal, simBal, dLoan){
+  var canvas = document.getElementById('simCanvas');
+  if(!canvas) return;
+  var ctx = canvas.getContext('2d');
+  var W = canvas.offsetWidth || 300;
+  var H = 120;
+  canvas.width = W;
+  canvas.height = H;
+  ctx.clearRect(0,0,W,H);
+
+  var months = 12;
+  var realVals = [], simVals = [];
+  var realCum = 0, simCum = 0;
+  var balDelta = simBal - realBal;
+  for(var i=0;i<months;i++){
+    var mb = getMonthData(monOffset+i);
+    realCum += mb.balance;
+    realVals.push(realCum);
+    // סימולציה: אותה יתרה בסיסית + הדלתא החודשית + תשלום חד פעמי בחודש הראשון
+    simCum += mb.balance + balDelta;
+    if(i === 0 && dLoan > 0) simCum -= dLoan;
+    simVals.push(simCum);
+  }
+
+  var allVals = realVals.concat(simVals);
+  var minV = Math.min.apply(null, allVals);
+  var maxV = Math.max.apply(null, allVals);
+  var range = maxV - minV || 1;
+  var pad = 12;
+
+  function toY(v){ return H - pad - ((v-minV)/range)*(H-2*pad); }
+  function toX(i){ return pad + i*(W-2*pad)/(months-1); }
+
+  // Zero line
+  var zeroY = toY(0);
+  ctx.strokeStyle='rgba(0,0,0,.08)';
+  ctx.lineWidth=1;
+  ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.moveTo(pad,zeroY); ctx.lineTo(W-pad,zeroY); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // Real line (blue)
+  ctx.strokeStyle='#1e90d4'; ctx.lineWidth=2;
+  ctx.beginPath();
+  for(var i=0;i<months;i++){
+    if(i===0) ctx.moveTo(toX(i),toY(realVals[i]));
+    else ctx.lineTo(toX(i),toY(realVals[i]));
+  }
+  ctx.stroke();
+
+  // Sim line (green/red)
+  var simColor2 = simBal >= realBal ? '#16a34a' : '#dc2626';
+  ctx.strokeStyle=simColor2; ctx.lineWidth=2.5;
+  ctx.beginPath();
+  for(var i=0;i<months;i++){
+    if(i===0) ctx.moveTo(toX(i),toY(simVals[i]));
+    else ctx.lineTo(toX(i),toY(simVals[i]));
+  }
+  ctx.stroke();
+
+  // Month labels
+  ctx.fillStyle='#94a3b8'; ctx.font='9px Heebo,sans-serif'; ctx.textAlign='center';
+  for(var i=0;i<months;i+=2){
+    var absM=BASE_ABS+monOffset+i;
+    ctx.fillText(MSHORT[absM%12],toX(i),H-2);
   }
 }
 

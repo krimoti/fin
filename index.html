@@ -1097,6 +1097,25 @@ function chMon(d){
   renderExp();updateSummary();
 }
 
+// ── TABS ──
+function sw(name){
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('on');});
+  document.querySelectorAll('.tb').forEach(function(b){b.classList.remove('on');});
+  var pEl=document.getElementById('p-'+name);
+  var tEl=document.getElementById('t-'+name);
+  if(pEl) pEl.classList.add('on');
+  if(tEl) tEl.classList.add('on');
+  if(name==='chart') setTimeout(renderCharts,60);
+  if(name==='backup') updateStorageInfo();
+  if(name==='sim') setTimeout(updateSim,60);
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(name==='log'){
+    lastLogCount=transLog.length;
+    var badge=document.getElementById('logBadge');
+    if(badge) badge.style.display='none';
+  }
+}
+
 // ── MODAL ──
 function closeMo(){document.getElementById('mo').classList.remove('on');editId=null;editType=null;}
 function toggleLF(){

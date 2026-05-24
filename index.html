@@ -521,7 +521,8 @@ body.dark .log-item { border-color: #2a3a5c; }
         <span style="font-size:10px;background:var(--gr100);color:var(--gr700);padding:3px 8px;border-radius:12px;font-weight:600">🔒 ללא אינטרנט</span>
       </div>
       <div class="ai-hint">שאלה → תשובה → שאלה חדשה מוחקת היסטוריה ועונה מחדש</div>
-      <div class="qq">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div class="qq" style="flex:1;margin-bottom:0">
         <button class="q" onclick="askQ('תן לי סיכום')">מצב כולל</button>
         <button class="q" onclick="askQ('כמה נשאר לי מהמשכורת?')">יתרת משכורת</button>
         <button class="q" onclick="askQ('כמה חוב יש לי?')">פירוט הלוואות</button>
@@ -534,6 +535,8 @@ body.dark .log-item { border-color: #2a3a5c; }
         <button class="q" onclick="askQ('הצג גרף')">📈 הצג גרף</button>
         <button class="q" onclick="askQ('הצג הלוואות')">💳 פתח הלוואות</button>
         <button class="q" onclick="askQ('עזרה')">📋 כל השאלות</button>
+      </div>
+        <button onclick="showKBManager()" style="background:var(--b50);border:1px solid var(--b200);color:var(--b700);padding:6px 12px;border-radius:20px;cursor:pointer;font-size:11px;font-weight:600;font-family:'Heebo',sans-serif;white-space:nowrap;flex-shrink:0;margin-bottom:9px">🧠 ידע נלמד</button>
       </div>
       <div class="ai-wrap">
         <div class="ai-msgs" id="aiMsgs">
@@ -1503,20 +1506,225 @@ ${c.netWorth>0?'✅ נכסים עולים על החובות.':'⚠️ החובו
   return`🤔 לא הבנתי. כתוב <b>"עזרה"</b> לרשימה מלאה 😊`;
 }
 
+// ══════════════════════════════════════
+// 🧠 LEARNING AI — מנוע למידה מקומי
+// ══════════════════════════════════════
+
+// בסיס הידע — נשמר ב-localStorage
+var knowledgeBase = [];
+var LS_KB = 'finapp_kb';
+var pendingLearn = null; // שאלה שממתינה ללמידה
+
+function saveKB(){
+  try{ localStorage.setItem(LS_KB, JSON.stringify(knowledgeBase)); }catch(e){}
+}
+function loadKB(){
+  try{
+    var raw = localStorage.getItem(LS_KB);
+    if(raw) knowledgeBase = JSON.parse(raw);
+  }catch(e){ knowledgeBase = []; }
+}
+
+// ── חילוץ מילות מפתח משאלה ──
+function extractKeywords(text){
+  var stopWords = ['מה','כמה','האם','אם','יש','לי','של','את','אני','הוא','היא','זה','זאת','על','עם','כי','או','גם'];
+  return text.toLowerCase()
+    .replace(/[?!.,״׳]/g,'')
+    .split(/\s+/)
+    .filter(function(w){ return w.length > 1 && stopWords.indexOf(w) === -1; });
+}
+
+// ── ציון התאמה בין שאלה לרשומה ──
+function matchScore(question, entry){
+  var qWords = extractKeywords(question);
+  var eWords = extractKeywords(entry.question);
+  if(!qWords.length || !eWords.length) return 0;
+
+  // סימטרי: מילים משותפות / מקסימום
+  var shared = qWords.filter(function(w){
+    return eWords.some(function(ew){ 
+      return ew === w || ew.indexOf(w) !== -1 || w.indexOf(ew) !== -1;
+    });
+  });
+  var score = shared.length / Math.max(qWords.length, eWords.length);
+
+  // בונוס אם מילת המפתח הראשית זהה
+  if(qWords[0] && eWords[0] && qWords[0] === eWords[0]) score += 0.2;
+
+  // בונוס אם יש מילה מפתח ספציפית מהפיננסים
+  var finWords = ['הלוואה','משכורת','הוצאה','חסכון','יתרה','חוב','פנסיה','ריבית','תשלום','הכנסה'];
+  finWords.forEach(function(fw){
+    if(question.includes(fw) && entry.question.includes(fw)) score += 0.15;
+  });
+
+  return Math.min(1, score);
+}
+
+// ── חיפוש בבסיס הידע ──
+function searchKB(question){
+  if(!knowledgeBase.length) return null;
+  var best = null;
+  var bestScore = 0;
+  var THRESHOLD = 0.45; // סף התאמה מינימלי
+
+  knowledgeBase.forEach(function(entry){
+    var score = matchScore(question, entry);
+    if(score > bestScore){
+      bestScore = score;
+      best = entry;
+    }
+  });
+
+  return bestScore >= THRESHOLD ? {entry: best, score: bestScore} : null;
+}
+
+// ── הוסף/עדכן רשומה ──
+function learnAnswer(question, answer){
+  var existing = knowledgeBase.find(function(e){
+    return matchScore(question, e) > 0.8;
+  });
+  if(existing){
+    existing.answer = answer;
+    existing.updatedAt = Date.now();
+    existing.useCount = (existing.useCount||0) + 1;
+  } else {
+    knowledgeBase.push({
+      id: Date.now(),
+      question: question,
+      answer: answer,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      useCount: 1
+    });
+  }
+  saveKB();
+}
+
+// ── UI להצגת שאלת למידה ──
+function showLearnPrompt(question, el){
+  pendingLearn = question;
+  el.innerHTML += '<div class="ai-m ai" id="learnPrompt" style="border:1.5px dashed var(--a600);background:var(--a100)">'
+    + '🤔 <b>לא ידעתי לענות על זה.</b><br>'
+    + 'מה התשובה הנכונה? אלמד ואזכור לעתיד 🧠<br><br>'
+    + '<div style="display:flex;gap:8px;margin-top:6px">'
+    + '<input id="learnInput" class="ai-in" style="flex:1;border-radius:8px;font-size:13px" placeholder="הכנס תשובה...">'
+    + '<button onclick="submitLearn()" style="background:var(--a600);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-family:\'Heebo\',sans-serif;font-size:13px;font-weight:600">למד ✓</button>'
+    + '</div>'
+    + '<button onclick="skipLearn()" style="background:none;border:none;color:var(--g400);font-size:11px;cursor:pointer;margin-top:6px;font-family:\'Heebo\',sans-serif">דלג</button>'
+    + '</div>';
+  el.scrollTop = el.scrollHeight;
+  setTimeout(function(){ var inp=document.getElementById('learnInput'); if(inp) inp.focus(); },200);
+}
+
+function submitLearn(){
+  var inp = document.getElementById('learnInput');
+  if(!inp || !inp.value.trim() || !pendingLearn) return;
+  var answer = inp.value.trim();
+  learnAnswer(pendingLearn, answer);
+  pendingLearn = null;
+  // החלף את פרומפט הלמידה בתשובה
+  var prompt = document.getElementById('learnPrompt');
+  if(prompt){
+    prompt.style.border = '1.5px solid var(--gr600)';
+    prompt.style.background = 'var(--gr100)';
+    prompt.innerHTML = '✅ <b>למדתי!</b> אזכור זאת בפעם הבאה 🧠<br><small style="color:var(--g500)">תשובה נשמרה: '+answer+'</small>';
+  }
+  var el = document.getElementById('aiMsgs');
+  if(el) el.scrollTop = el.scrollHeight;
+}
+
+function skipLearn(){
+  pendingLearn = null;
+  var prompt = document.getElementById('learnPrompt');
+  if(prompt) prompt.remove();
+}
+
+// ── ניהול בסיס הידע ──
+function showKBManager(){
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:flex-end;justify-content:center;padding:0';
+  
+  function closeKB(){ ov.remove(); document.removeEventListener('keydown', onKBKey); }
+  function onKBKey(e){ if(e.key==='Escape'){ e.preventDefault(); closeKB(); } }
+  document.addEventListener('keydown', onKBKey);
+
+  var rows = knowledgeBase.length ? knowledgeBase.map(function(e,i){
+    return '<div style="padding:10px 12px;border-bottom:1px solid var(--g100);font-size:12px">'
+      +'<div style="font-weight:600;color:var(--g800);margin-bottom:2px">❓ '+e.question+'</div>'
+      +'<div style="color:var(--g600)">💬 '+e.answer+'</div>'
+      +'<div style="display:flex;justify-content:space-between;margin-top:4px">'
+      +'<span style="color:var(--g400);font-size:10px">שימושים: '+( e.useCount||1)+'</span>'
+      +'<button onclick="deleteKBEntry('+e.id+',this)" style="background:var(--r100);border:none;color:var(--r600);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px">מחק</button>'
+      +'</div></div>';
+  }).join('') : '<div style="text-align:center;padding:30px;color:var(--g400)">אין ידע נלמד עדיין.<br>שאל שאלה שה-AI לא יודע לענות עליה!</div>';
+
+  ov.innerHTML = '<div style="background:#fff;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:680px;max-height:75vh;overflow-y:auto;box-shadow:0 -4px 24px rgba(0,0,0,.15)">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">'
+    +'<div style="font-size:17px;font-weight:700">🧠 בסיס הידע ('+knowledgeBase.length+' רשומות)</div>'
+    +'<button onclick="this.closest(\'[style*=fixed]\').remove()" style="background:var(--g100);border:none;width:34px;height:34px;border-radius:50%;font-size:20px;cursor:pointer">×</button>'
+    +'</div>'
+    + rows
+    +(knowledgeBase.length?'<button onclick="clearKB(this)" style="width:100%;margin-top:12px;padding:10px;background:var(--r100);color:var(--r600);border:none;border-radius:8px;cursor:pointer;font-family:\'Heebo\',sans-serif;font-size:13px;font-weight:600">🗑 מחק את כל הידע</button>':'')
+    +'</div>';
+
+  ov.addEventListener('click', function(e){ if(e.target===ov) closeKB(); });
+  document.body.appendChild(ov);
+}
+
+function deleteKBEntry(id, btn){
+  knowledgeBase = knowledgeBase.filter(function(e){ return e.id !== id; });
+  saveKB();
+  var row = btn.closest('[style*=border-bottom]');
+  if(row) row.remove();
+}
+
+function clearKB(btn){
+  knowledgeBase = [];
+  saveKB();
+  var panel = btn.parentElement;
+  if(panel) panel.innerHTML = '<div style="text-align:center;padding:30px;color:var(--g400)">הידע נמחק.</div>';
+}
+
+// ── sendAI ו-askQ עם למידה ──
 function sendAI(){
-  const inp=document.getElementById('aiIn');
-  const msg=inp.value.trim();
+  var inp=document.getElementById('aiIn');
+  var msg=inp.value.trim();
   if(!msg)return;
   inp.value='';
   askQ(msg);
 }
+
 function askQ(q){
-  const el=document.getElementById('aiMsgs');
+  var el=document.getElementById('aiMsgs');
   aiTurns++;
   if(aiTurns>1)el.innerHTML='';
-  el.innerHTML+=`<div class="ai-m me">${q}</div>`;
-  el.innerHTML+=`<div class="ai-m ai">${localAI(q)}</div>`;
+  el.innerHTML+='<div class="ai-m me">'+q+'</div>';
+
+  // 1. חפש בבסיס הידע הנלמד
+  var kbResult = searchKB(q);
+  if(kbResult){
+    var conf = Math.round(kbResult.score * 100);
+    kbResult.entry.useCount = (kbResult.entry.useCount||0)+1;
+    saveKB();
+    el.innerHTML+='<div class="ai-m ai">'
+      +kbResult.entry.answer
+      +'<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--b100);font-size:10px;color:var(--g400)">🧠 נלמד · התאמה: '+conf+'%</div>'
+      +'</div>';
+    el.scrollTop=el.scrollHeight;
+    return;
+  }
+
+  // 2. נסה תשובה מהלוגיקה המובנית
+  var builtIn = localAI(q);
+  var notKnown = builtIn.startsWith('🤔');
+
+  el.innerHTML+='<div class="ai-m ai">'+builtIn+'</div>';
   el.scrollTop=el.scrollHeight;
+
+  // 3. אם לא ידע — הצג פרומפט למידה
+  if(notKnown){
+    showLearnPrompt(q, el);
+  }
 }
 
 // ── INIT ──
@@ -2488,6 +2696,7 @@ function initExtras(){
   updateAlertBadge();
   updateLogBadge();
   updateHealthScore();
+  loadKB();
 }
 
 </script>

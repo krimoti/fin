@@ -1511,6 +1511,168 @@ ${c.netWorth>0?'✅ נכסים עולים על החובות.':'⚠️ החובו
 // ══════════════════════════════════════
 
 // בסיס הידע — נשמר ב-localStorage
+// ══════════════════════════════════════
+// 👤 PERSONAL MEMORY — זיכרון אישי
+// ══════════════════════════════════════
+var LS_PROFILE = 'finapp_profile';
+var userProfile = {
+  name: '',
+  topics: {},      // נושאים שעניינו: {topic: count}
+  facts: {},       // עובדות שלמד: {key: value}
+  lastSeen: null,
+  sessionCount: 0
+};
+
+function saveProfile(){ try{ localStorage.setItem(LS_PROFILE, JSON.stringify(userProfile)); }catch(e){} }
+function loadProfile(){
+  try{
+    var raw = localStorage.getItem(LS_PROFILE);
+    if(raw){
+      var saved = JSON.parse(raw);
+      // מיזוג עם ברירת מחדל
+      userProfile.name = saved.name||'';
+      userProfile.topics = saved.topics||{};
+      userProfile.facts = saved.facts||{};
+      userProfile.lastSeen = saved.lastSeen||null;
+      userProfile.sessionCount = (saved.sessionCount||0)+1;
+    } else {
+      userProfile.sessionCount = 1;
+    }
+    userProfile.lastSeen = new Date().toISOString();
+    saveProfile();
+  }catch(e){}
+}
+
+// ── חילוץ עובדות ממשפט ──
+function extractFacts(text){
+  var t = text.trim();
+  // שם
+  var nameMatch = t.match(/(?:שמי|קוראים לי|אני\s+)([א-ת\w]{2,20})/);
+  if(nameMatch){ userProfile.name = nameMatch[1]; saveProfile(); }
+  // עובדות כלליות — "אני X", "יש לי X"
+  var factMatch = t.match(/^(?:אני|יש לי|גר ב|עובד ב|אני עובד ב)\s+(.+)/);
+  if(factMatch){
+    var key = 'fact_'+Date.now();
+    userProfile.facts[key] = {text: t, learned: Date.now()};
+    saveProfile();
+  }
+}
+
+// ── עדכן נושאים שמעניינים ──
+function trackTopic(q){
+  var topics = {
+    'הלוואות': ['הלוואה','חוב','תשלום','אשראי'],
+    'הוצאות': ['הוצאה','קניות','ביטוח','חשמל'],
+    'הכנסות': ['משכורת','הכנסה','שכר','בונוס'],
+    'חסכונות': ['חסכון','קרן','פנסיה','גמל'],
+    'תחזיות': ['תחזית','עתיד','שנה','מה יקרה'],
+    'סימולציה': ['אם','מה יהיה','סימולציה']
+  };
+  Object.keys(topics).forEach(function(topic){
+    if(topics[topic].some(function(kw){ return q.includes(kw); })){
+      userProfile.topics[topic] = (userProfile.topics[topic]||0) + 1;
+      saveProfile();
+    }
+  });
+}
+
+// ── בניית הקשר אישי לתשובה ──
+function buildPersonalContext(){
+  var ctx = [];
+  if(userProfile.name) ctx.push('אני מכיר אותך, '+userProfile.name);
+  // נושא מועדף
+  var topTopic = null, topCount = 0;
+  Object.keys(userProfile.topics).forEach(function(t){
+    if(userProfile.topics[t] > topCount){ topCount = userProfile.topics[t]; topTopic = t; }
+  });
+  if(topTopic && topCount >= 3) ctx.push('רואה שמעניין אותך בעיקר '+topTopic);
+  return ctx;
+}
+
+// ── ברכת כניסה אישית ──
+function buildGreeting(){
+  var now = new Date();
+  var hour = now.getHours();
+  var greeting = hour < 12 ? 'בוקר טוב' : hour < 17 ? 'צהריים טובים' : hour < 21 ? 'ערב טוב' : 'לילה טוב';
+  var name = userProfile.name ? ', '+userProfile.name : '';
+  var msg = greeting + name + '! 👋 ';
+
+  if(userProfile.sessionCount > 1 && userProfile.lastSeen){
+    var lastDate = new Date(userProfile.lastSeen);
+    var daysDiff = Math.floor((now - lastDate) / 86400000);
+    if(daysDiff === 0) msg += 'שמח לראותך שוב היום.';
+    else if(daysDiff === 1) msg += 'לא ראיתי אותך מאתמול.';
+    else msg += 'לא ראיתי אותך '+daysDiff+' ימים.';
+  } else {
+    msg += 'פגישה ראשונה! ';
+    if(!userProfile.name) msg += 'מה שמך?';
+  }
+
+  // תזכורת נושא מועדף
+  var topTopic = null, topCount = 0;
+  Object.keys(userProfile.topics).forEach(function(t){
+    if(userProfile.topics[t] > topCount){ topCount = userProfile.topics[t]; topTopic = t; }
+  });
+  if(topTopic && topCount >= 2) msg += '<br><small style="color:var(--g500)">בפעם הקודמת שאלת הרבה על '+topTopic+'.</small>';
+
+  return msg;
+}
+
+// ── תשובה על שאלות אישיות ──
+function personalAI(q){
+  var ql = q.toLowerCase().trim();
+
+  // שם
+  if(ql.includes('מה שמי') || ql.includes('מי אני') || ql.includes('אתה יודע מי אני')){
+    if(userProfile.name) return '😊 שמך <b>'+userProfile.name+'</b>! אני זוכר.';
+    return '🤔 עדיין לא סיפרת לי את שמך. מה שמך?';
+  }
+  if(ql.match(/שמי\s+\S+/) || ql.match(/קוראים לי\s+\S+/)){
+    extractFacts(q);
+    return '😊 שמחתי להכיר, <b>'+userProfile.name+'</b>! אזכור זאת.';
+  }
+
+  // כמה פעמים נכנס
+  if(ql.includes('כמה פעמים') || ql.includes('מתי נכנסתי')){
+    return '📊 נכנסת <b>'+userProfile.sessionCount+' פעמים</b> עד כה.';
+  }
+
+  // מה מעניין
+  if(ql.includes('מה מעניין') || ql.includes('על מה שאלתי') || ql.includes('מה אני אוהב')){
+    var sorted = Object.keys(userProfile.topics).sort(function(a,b){
+      return userProfile.topics[b]-userProfile.topics[a];
+    });
+    if(!sorted.length) return 'עוד לא למדתי מה מעניין אותך. שאל יותר שאלות! 😊';
+    var list = sorted.map(function(t){ return t+' ('+userProfile.topics[t]+')'; }).join(', ');
+    return '📊 לפי ההיסטוריה שלך, תחומי העניין שלך: <b>'+list+'</b>';
+  }
+
+  // עובדות שנלמדו
+  if(ql.includes('מה אתה יודע עלי') || ql.includes('מה ידוע לך')){
+    var lines = [];
+    if(userProfile.name) lines.push('שמך: <b>'+userProfile.name+'</b>');
+    lines.push('כניסות: <b>'+userProfile.sessionCount+'</b>');
+    var facts = Object.values(userProfile.facts||{});
+    facts.slice(-3).forEach(function(f){ lines.push('📌 '+f.text); });
+    var top = Object.keys(userProfile.topics).sort(function(a,b){ return userProfile.topics[b]-userProfile.topics[a]; })[0];
+    if(top) lines.push('נושא מועדף: <b>'+top+'</b>');
+    return '👤 <b>מה שאני יודע עליך:</b><br><br>'+lines.join('<br>');
+  }
+
+  // גישה לנושא ספציפי
+  if(ql.includes('תראה לי') || ql.includes('עבור ל') || ql.includes('פתח את')){
+    if(ql.includes('הלוואות') || ql.includes('הלוואה')){ sw('loan'); return '💳 עברתי לטאב הלוואות!'; }
+    if(ql.includes('חסכונות') || ql.includes('חסכון')){ sw('sav'); return '🏦 עברתי לטאב חסכונות!'; }
+    if(ql.includes('הוצאות') || ql.includes('הוצאה')){ sw('exp'); return '📊 עברתי לטאב הוצאות!'; }
+    if(ql.includes('גרפים') || ql.includes('גרף')){ sw('chart'); return '📈 עברתי לגרפים!'; }
+    if(ql.includes('סימולטור')){ sw('sim'); return '🎚️ עברתי לסימולטור!'; }
+    if(ql.includes('יעדים')){ sw('goals'); return '🎯 עברתי לטאב יעדים!'; }
+    if(ql.includes('גיבוי')){ sw('backup'); return '💾 עברתי לטאב גיבוי!'; }
+  }
+
+  return null; // לא שאלה אישית
+}
+
 var knowledgeBase = [];
 var LS_KB = 'finapp_kb';
 var pendingLearn = null; // שאלה שממתינה ללמידה
@@ -1700,30 +1862,69 @@ function askQ(q){
   if(aiTurns>1)el.innerHTML='';
   el.innerHTML+='<div class="ai-m me">'+q+'</div>';
 
-  // 1. חפש בבסיס הידע הנלמד
+  // עדכן נושאים ולמד עובדות
+  trackTopic(q.toLowerCase());
+  extractFacts(q);
+
+  // 1. בדוק שאלות אישיות
+  var personalAnswer = personalAI(q);
+  if(personalAnswer){
+    el.innerHTML+='<div class="ai-m ai">'+personalAnswer+'</div>';
+    el.scrollTop=el.scrollHeight;
+    return;
+  }
+
+  // 2. חפש בבסיס הידע הנלמד
   var kbResult = searchKB(q);
   if(kbResult){
     var conf = Math.round(kbResult.score * 100);
     kbResult.entry.useCount = (kbResult.entry.useCount||0)+1;
     saveKB();
-    el.innerHTML+='<div class="ai-m ai">'
-      +kbResult.entry.answer
-      +'<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--b100);font-size:10px;color:var(--g400)">🧠 נלמד · התאמה: '+conf+'%</div>'
+    // הוסף הקשר אישי אם רלוונטי
+    var ctx = buildPersonalContext();
+    var prefix = ctx.length ? '<div style="font-size:11px;color:var(--b600);margin-bottom:6px">'+ctx.join(' · ')+'</div>' : '';
+    el.innerHTML+='<div class="ai-m ai">'+prefix+kbResult.entry.answer
+      +'<div style="margin-top:8px;padding-top:6px;border-top:1px solid var(--b100);display:flex;justify-content:space-between;align-items:center">'
+      +'<span style="font-size:10px;color:var(--g400)">🧠 נלמד · התאמה: '+conf+'%</span>'
+      +'<div style="display:flex;gap:6px">'
+      +'<button onclick="markHelpful(this,true)" style="background:var(--gr100);border:none;color:var(--gr600);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px">👍</button>'
+      +'<button onclick="markHelpful(this,false)" style="background:var(--r100);border:none;color:var(--r600);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px">👎 למד עוד</button>'
+      +'</div></div>'
       +'</div>';
     el.scrollTop=el.scrollHeight;
     return;
   }
 
-  // 2. נסה תשובה מהלוגיקה המובנית
+  // 3. לוגיקה מובנית
   var builtIn = localAI(q);
   var notKnown = builtIn.startsWith('🤔');
 
-  el.innerHTML+='<div class="ai-m ai">'+builtIn+'</div>';
+  // הוסף הקשר אישי לתשובות מובנות
+  var ctx2 = buildPersonalContext();
+  var prefix2 = ctx2.length ? '<div style="font-size:11px;color:var(--b600);margin-bottom:6px">'+ctx2.join(' · ')+'</div>' : '';
+
+  el.innerHTML+='<div class="ai-m ai">'+prefix2+builtIn+'</div>';
   el.scrollTop=el.scrollHeight;
 
-  // 3. אם לא ידע — הצג פרומפט למידה
+  // 4. אם לא ידע — פרומפט למידה
   if(notKnown){
     showLearnPrompt(q, el);
+  }
+}
+
+// ── כפתורי משוב ──
+function markHelpful(btn, helpful){
+  var msgEl = btn.closest('.ai-m');
+  if(!helpful){
+    // לא מספיק — שאל שוב עם אפשרות לשפר
+    btn.closest('div[style*=flex]').innerHTML = '<span style="font-size:11px;color:var(--a600)">אוסיף ידע חדש...</span>';
+    if(pendingLearn) return;
+    // מצא את השאלה שנשאלה
+    var msgs = document.querySelectorAll('.ai-m.me');
+    var lastQ = msgs.length ? msgs[msgs.length-1].textContent : '';
+    if(lastQ) showLearnPrompt(lastQ, document.getElementById('aiMsgs'));
+  } else {
+    btn.closest('div[style*=flex]').innerHTML = '<span style="font-size:11px;color:var(--gr600)">✅ תודה!</span>';
   }
 }
 
@@ -2697,6 +2898,14 @@ function initExtras(){
   updateLogBadge();
   updateHealthScore();
   loadKB();
+  loadProfile();
+  // הצג ברכה אישית בחלון AI
+  setTimeout(function(){
+    var el = document.getElementById('aiMsgs');
+    if(el){
+      el.innerHTML = '<div class="ai-m ai">'+buildGreeting()+'<br><br>אני יודע לענות על שאלות פיננסיות, לנווט לטאבים, ואני לומד ממך בכל שיחה 🧠<br><small style="color:var(--g500)">כתוב <b>"מה אתה יודע עלי"</b> לראות מה זכרתי</small></div>';
+    }
+  }, 300);
 }
 
 </script>

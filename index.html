@@ -1515,13 +1515,49 @@ ${c.netWorth>0?'✅ נכסים עולים על החובות.':'⚠️ החובו
 // ⚡ ACTION AI — ביצוע פעולות אוטומטי
 // ══════════════════════════════════════
 
+// מצב המתנה לתשובה מהמשתמש
+var pendingQuestion = null; // {type, data}
+
+function handlePendingAnswer(q){
+  if(!pendingQuestion) return null;
+  var pq = pendingQuestion;
+  pendingQuestion = null;
+
+  // ממתין לשם
+  if(pq.type === 'askName'){
+    var name = q.trim().replace(/[^א-תa-zA-Z\s]/g,'').trim();
+    if(name.length > 1){
+      userProfile.name = name;
+      saveProfile();
+      return '😊 שמחתי להכיר, <b>'+name+'</b>! אזכור זאת לתמיד.';
+    }
+    return '🤔 לא הבנתי. נסה שוב — מה שמך?';
+  }
+
+  // ממתין לאישור פעולה
+  if(pq.type === 'confirmAction'){
+    var ql2 = q.toLowerCase().trim();
+    if(['כן','אישור','בצע','אוקי','ok','yes'].some(function(w){ return ql2.includes(w); })){
+      pq.data();
+      return '✅ בוצע!';
+    }
+    return '❌ בוטל.';
+  }
+
+  return null;
+}
+
 function actionAI(q){
   var ql = q.toLowerCase().trim();
-  var result = null;
+
+  // ── בדוק אם יש תשובה לשאלה ממתינה ──
+  var pendingResult = handlePendingAnswer(q);
+  if(pendingResult) return pendingResult;
 
   // ── פרסור סכום כספי ──
   function parseAmount(text){
-    var m = text.match(/(\d[\d,\.]*)\s*(?:₪|שקל|ש"ח|שח)?/);
+    // תומך: 100, 1,000, 1000.50, 100₪, 100 שקל
+    var m = text.match(/(\d[\d,]*(?:\.\d+)?)\s*(?:₪|שקל|ש"ח|שח|שקלים)?/);
     return m ? parseFloat(m[1].replace(/,/g,'')) : 0;
   }
 
@@ -1543,172 +1579,138 @@ function actionAI(q){
   }
 
   // ── הוספת הוצאה ──
-  // "רשום הוצאה של 200 שקל על חשמל"
-  // "הוסף הוצאה חד פעמית 100₪ בחודש מאי"
-  var addExpMatch = ql.match(/(?:רשום|הוסף|הכנס|צור)\s+(?:לי\s+)?(?:הוצאה|תשלום)(?:\s+חד\s*פעמית?)?(?:\s+של?)?\s+/);
-  if(addExpMatch){
+  // גמיש: "הוסף הוצאה 100", "רשום הוצאה חד פעמית של 200 על חשמל"
+  // "הוסף לי הוצאה", "תרשום הוצאה"
+  var isAddExp = /(?:רשום|הוסף|הכנס|צור|תרשום|תוסיף)\s*(?:לי\s*)?(?:הוצאה|תשלום|חיוב)/.test(ql);
+  if(isAddExp){
     var amount = parseAmount(ql);
     if(amount > 0){
-      // שם ההוצאה — מה שבא אחרי "על" או "בשם" או "עבור"
-      var nameMatch = ql.match(/(?:על|עבור|בשם|:\s*)([א-ת\w\s]{2,25}?)(?:\s+ב(?:חודש|מאי|יוני|יולי|\d)|$)/);
+      // שם: אחרי "על", "עבור", "בשם", ":" — או מה שנשאר
+      var nameMatch = ql.match(/(?:על|עבור|בשם|:\s*)([א-ת\w][א-ת\w\s]{1,24}?)(?:\s+ב(?:חודש|מאי|יוני|יולי|אוג|ספט|אוק|נוב|דצמ|ינו|פבר|מרץ|אפר|\d)|$)/);
       var expName = nameMatch ? nameMatch[1].trim() : 'הוצאה';
+      if(expName === 'הוצאה' || expName.length < 2) expName = 'הוצאה חדשה';
 
-      // חד פעמי?
-      var isOneTime = ql.includes('חד פעמי') || ql.includes('חד-פעמי') || ql.includes('פעם אחת');
+      var isOneTime = /חד\s*פעמי|פעם\s+אחת|חד-פעמי/.test(ql);
       var months = isOneTime ? 1 : 0;
-
-      // חודש התחלה
       var startDate = parseMonth(ql);
 
-      // הוסף את ההוצאה
       expenses.push({
-        id: Date.now(),
-        name: expName,
-        amount: amount,
+        id: Date.now(), name: expName, amount: amount,
         type: isOneTime ? 'אחר' : 'הוראת קבע',
         note: isOneTime ? 'חד פעמי' : '',
-        startDate: startDate,
-        months: months
+        startDate: startDate, months: months
       });
       syncAll();
       addLog('add', expName, amount, 'exp');
-
-      result = '✅ <b>ביצעתי!</b> הוספתי הוצאה:<br><br>'
+      setTimeout(function(){ sw('exp'); }, 1200);
+      return '✅ <b>ביצעתי!</b> הוספתי הוצאה:<br><br>'
         +'📌 <b>'+expName+'</b><br>'
-        +'💰 סכום: <b>'+fmt(amount)+'</b><br>'
-        +'📅 מתחיל: <b>'+startDate+'</b><br>'
-        +(isOneTime?'⏱️ חד פעמי — תשלום אחד בלבד':'🔁 קבוע — כל חודש')
-        +'<br><br><small style="color:var(--g500)">עברתי לטאב הוצאות לאישור</small>';
-      setTimeout(function(){ sw('exp'); }, 1500);
-      return result;
+        +'💰 <b>'+fmt(amount)+'</b>'+(isOneTime?' · חד פעמי':' · חודשי')+'<br>'
+        +'📅 מ-'+startDate
+        +'<br><br><small style="color:var(--g500)">✓ נרשם ועברתי לטאב הוצאות</small>';
     }
+    // אין סכום — שאל
+    pendingQuestion = {type:'confirmAction', data: function(){}};
+    return '💬 כמה הסכום? (לדוגמה: "200 שקל")';
   }
 
   // ── הוספת הכנסה ──
-  // "רשום הכנסה של 5000 שקל משכורת"
-  var addIncMatch = ql.match(/(?:רשום|הוסף|הכנס)\s+(?:לי\s+)?(?:הכנסה|משכורת|שכר)/);
-  if(addIncMatch){
-    var amount = parseAmount(ql);
-    if(amount > 0){
-      var nameMatch2 = ql.match(/(?:מ|בשם|:\s*)([א-ת\w\s]{2,20})(?:\s|$)/);
-      var incName = nameMatch2 ? nameMatch2[1].trim() : 'הכנסה';
-      if(ql.includes('משכורת') || ql.includes('שכר')) incName = 'משכורת';
-
-      incomes.push({ id:Date.now(), name:incName, amount:amount, freq:'חודשי' });
+  var isAddInc = /(?:רשום|הוסף|הכנס|תרשום)\s*(?:לי\s*)?(?:הכנסה|משכורת|שכר|הכנסה חדשה)/.test(ql);
+  if(isAddInc){
+    var amount2 = parseAmount(ql);
+    if(amount2 > 0){
+      var nameMatch2 = ql.match(/(?:מ|ממקור|בשם)\s+([א-ת\w\s]{2,20})/);
+      var incName = nameMatch2 ? nameMatch2[1].trim() : (ql.includes('משכורת')||ql.includes('שכר') ? 'משכורת' : 'הכנסה');
+      incomes.push({id:Date.now(), name:incName, amount:amount2, freq:'חודשי'});
       syncAll();
-      addLog('add', incName, amount, 'inc');
-
-      result = '✅ <b>ביצעתי!</b> הוספתי הכנסה:<br><br>'
-        +'💰 <b>'+incName+'</b>: <b>'+fmt(amount)+'</b>/חודש'
-        +'<br><br><small style="color:var(--g500)">עברתי לטאב הוצאות לאישור</small>';
-      setTimeout(function(){ sw('exp'); }, 1500);
-      return result;
+      addLog('add', incName, amount2, 'inc');
+      setTimeout(function(){ sw('exp'); }, 1200);
+      return '✅ <b>הוספתי הכנסה:</b><br><b>'+incName+'</b> — '+fmt(amount2)+'/חודש';
     }
   }
 
   // ── עדכון סכום קיים ──
-  // "עדכן הוצאה של נטפליקס ל-85 שקל"
-  var updateMatch = ql.match(/(?:עדכן|שנה|תשנה)\s+(?:הוצאה של\s+|את\s+)?(.{2,20}?)\s+(?:ל|ל-|לסכום)\s*(\d+)/);
-  if(updateMatch){
-    var searchName = updateMatch[1].trim();
-    var newAmount = parseFloat(updateMatch[2]);
-    var found = expenses.find(function(e){ return e.name.includes(searchName) || searchName.includes(e.name.split(' ')[0]); });
+  var updateM = ql.match(/(?:עדכן|שנה|תשנה)\s+(?:את\s+)?(.{2,20}?)\s+(?:ל|ל-|לסכום\s*)(\d[\d,]*)/);
+  if(updateM){
+    var searchName = updateM[1].trim();
+    var newAmount = parseFloat(updateM[2].replace(/,/g,''));
+    var found = expenses.find(function(e){ 
+      return e.name.includes(searchName) || searchName.includes(e.name.split(' ')[0]); 
+    });
     if(found && newAmount > 0){
-      var oldAmount = found.amount;
+      var old = found.amount;
       found.amount = newAmount;
       syncAll();
-      result = '✅ <b>עדכנתי!</b><br><br>'
-        +'📝 <b>'+found.name+'</b><br>'
-        +''+fmt(oldAmount)+' → <b>'+fmt(newAmount)+'</b>';
-      return result;
+      return '✅ <b>עדכנתי!</b><br>'+found.name+': '+fmt(old)+' ← <b>'+fmt(newAmount)+'</b>';
     }
   }
 
   // ── מחיקת הוצאה ──
-  // "מחק את הוצאה של נטפליקס"
-  var deleteMatch = ql.match(/(?:מחק|הסר|בטל)\s+(?:את\s+)?(?:הוצאה של\s+|התשלום של\s+)?(.{2,25})/);
-  if(deleteMatch){
-    var searchDel = deleteMatch[1].trim();
-    var foundIdx = expenses.findIndex(function(e){ return e.name.includes(searchDel) || searchDel.includes(e.name.split(' ')[0]); });
+  var deleteM = ql.match(/(?:מחק|הסר|בטל)\s+(?:את\s+)?(?:הוצאה\s+)?(?:של\s+|ה)?(.{2,25}?)(?:\s*$)/);
+  if(deleteM && /מחק|הסר|בטל/.test(ql)){
+    var searchDel = deleteM[1].trim();
+    var foundIdx = expenses.findIndex(function(e){ 
+      return e.name.includes(searchDel) || searchDel.includes(e.name.split(' ')[0]); 
+    });
     if(foundIdx !== -1){
-      var deleted = expenses[foundIdx];
-      expenses.splice(foundIdx, 1);
+      var deleted = expenses.splice(foundIdx,1)[0];
       syncAll();
       addLog('del', deleted.name, deleted.amount, 'exp');
-      result = '🗑️ <b>מחקתי!</b><br><br>הוצאה <b>'+deleted.name+'</b> ('+fmt(deleted.amount)+') נמחקה.';
-      return result;
+      return '🗑️ <b>מחקתי:</b> '+deleted.name+' ('+fmt(deleted.amount)+')';
     }
   }
 
   // ── הוספת הלוואה ──
-  // "רשום הלוואה של 50000 שקל ב7 אחוז ל36 תשלומים"
-  var loanMatch = ql.match(/(?:רשום|הוסף)\s+(?:לי\s+)?הלוואה/);
-  if(loanMatch){
+  var isAddLoan = /(?:רשום|הוסף|הכנס)\s*(?:לי\s*)?הלוואה/.test(ql);
+  if(isAddLoan){
     var lAmount = parseAmount(ql);
-    var lRate = 0;
-    var rateM = ql.match(/(\d+(?:\.\d+)?)\s*(?:אחוז|%)/);
-    if(rateM) lRate = parseFloat(rateM[1]);
-    var lPayments = 12;
-    var paymentsM = ql.match(/(\d+)\s*(?:תשלומים|חודשים)/);
-    if(paymentsM) lPayments = parseInt(paymentsM[1]);
-    var nameM = ql.match(/(?:עבור|על|בשם)\s+([א-ת\w\s]{2,20})/);
-    var lName = nameM ? nameM[1].trim() : 'הלוואה חדשה';
+    var lRate = 0, rM = ql.match(/(\d+(?:\.\d+)?)\s*(?:אחוז|%)/);
+    if(rM) lRate = parseFloat(rM[1]);
+    var lPay = 12, pM = ql.match(/(\d+)\s*(?:תשלומים|חודשים)/);
+    if(pM) lPay = parseInt(pM[1]);
+    var lNM = ql.match(/(?:עבור|על|בשם)\s+([א-ת\w\s]{2,20})/);
+    var lName = lNM ? lNM[1].trim() : 'הלוואה חדשה';
     var lStart = parseMonth(ql);
-
     if(lAmount > 0){
-      var r = lRate > 0 ? lRate/100/12 : 0;
-      var monthly = r > 0
-        ? lAmount*(r*Math.pow(1+r,lPayments))/(Math.pow(1+r,lPayments)-1)
-        : lAmount/lPayments;
+      var r2 = lRate>0 ? lRate/100/12 : 0;
+      var monthly = r2>0 ? lAmount*(r2*Math.pow(1+r2,lPay))/(Math.pow(1+r2,lPay)-1) : lAmount/lPay;
       monthly = Math.round(monthly*100)/100;
-      var totalPay = Math.round(monthly*lPayments);
-      var interest = totalPay - lAmount;
-
       loans.push({id:Date.now(),name:lName,totalAmount:lAmount,monthlyPayment:monthly,
-        remainingPayments:lPayments,lender:'',startDate:lStart,interest:lRate,note:''});
+        remainingPayments:lPay,lender:'',startDate:lStart,interest:lRate,note:''});
       syncAll();
       addLog('add', lName, monthly, 'loan');
-
-      result = '✅ <b>הוספתי הלוואה!</b><br><br>'
-        +'💳 <b>'+lName+'</b><br>'
-        +'💰 קרן: '+fmt(lAmount)+' | ריבית: '+lRate+'%<br>'
-        +'📅 '+lPayments+' תשלומים × <b>'+fmt(Math.round(monthly))+'</b><br>'
-        +'📊 סה"כ: '+fmt(totalPay)+' | ריבית: +'+fmt(interest)
-        +'<br><br><small style="color:var(--g500)">עברתי לטאב הלוואות</small>';
-      setTimeout(function(){ sw('loan'); }, 1500);
-      return result;
+      setTimeout(function(){ sw('loan'); }, 1200);
+      return '✅ <b>הוספתי הלוואה:</b><br>'
+        +'<b>'+lName+'</b> | '+fmt(lAmount)+' | '+lRate+'%<br>'
+        +lPay+' תשלומים × <b>'+fmt(Math.round(monthly))+'</b>/חודש<br>'
+        +'מתחיל: '+lStart;
     }
   }
 
   // ── יעד חיסכון ──
-  // "צור יעד חיסכון לחופשה של 8000 שקל"
-  var goalMatch = ql.match(/(?:צור|הוסף|רשום)\s+(?:לי\s+)?(?:יעד|מטרה)/);
-  if(goalMatch){
-    var gAmount = parseAmount(ql);
-    var gNameM = ql.match(/(?:ל|עבור|בשם)\s+([א-ת\w\s]{2,20}?)(?:\s+של|\s+ב|\s*$)/);
-    var gName = gNameM ? gNameM[1].trim() : 'יעד חיסכון';
-    if(gAmount > 0){
-      goals.push({id:Date.now(), name:gName, target:gAmount, saved:0});
-      saveData();
-      renderGoals();
-      result = '🎯 <b>יעד נוסף!</b><br><br>'
-        +'<b>'+gName+'</b>: יעד '+fmt(gAmount)
-        +'<br>התחל לחסוך ועדכן דרך טאב היעדים.';
-      setTimeout(function(){ sw('goals'); }, 1500);
-      return result;
+  var isGoal = /(?:צור|הוסף)\s*(?:לי\s*)?(?:יעד|מטרה)/.test(ql);
+  if(isGoal){
+    var gAmt = parseAmount(ql);
+    var gNM = ql.match(/(?:ל|עבור)\s+([א-ת\w\s]{2,20}?)(?:\s+של|\s*$)/);
+    var gName = gNM ? gNM[1].trim() : 'יעד חיסכון';
+    if(gAmt > 0){
+      goals.push({id:Date.now(),name:gName,target:gAmt,saved:0});
+      saveData(); renderGoals();
+      setTimeout(function(){ sw('goals'); }, 1200);
+      return '🎯 <b>יעד נוסף:</b> '+gName+' — '+fmt(gAmt);
     }
   }
 
   // ── הצג רשימה ──
-  // "הצג את כל ההוצאות שלי"
-  if(ql.match(/(?:הצג|רשום|תן לי רשימה של)\s+(?:את\s+)?(?:כל\s+)?(?:ה)?הוצאות/)){
-    if(!expenses.length) return 'אין הוצאות מוגדרות כרגע.';
-    var list = expenses.filter(function(e){ return expenseActiveAt(e,monOffset); })
-      .map(function(e){ return '• '+e.name+': <b>'+fmt(e.amount)+'</b>'; }).join('<br>');
-    return '📋 <b>הוצאות פעילות:</b><br><br>'+list+'<br><br>סה"כ: <b>'+fmt(expenses.filter(function(e){return expenseActiveAt(e,monOffset);}).reduce(function(s,e){return s+e.amount;},0))+'</b>';
+  if(/(?:הצג|רשום|תן לי)\s+(?:את\s+)?(?:כל\s+)?(?:ה)?הוצאות/.test(ql)){
+    var actExp = expenses.filter(function(e){ return expenseActiveAt(e,monOffset); });
+    if(!actExp.length) return 'אין הוצאות פעילות כרגע.';
+    return '📋 <b>הוצאות פעילות:</b><br><br>'
+      +actExp.map(function(e){ return '• '+e.name+': <b>'+fmt(e.amount)+'</b>'; }).join('<br>')
+      +'<br><br>סה"כ: <b>'+fmt(actExp.reduce(function(s,e){return s+e.amount;},0))+'</b>';
   }
 
-  return null; // לא פעולה
+  return null;
 }
 var LS_PROFILE = 'finapp_profile';
 var userProfile = {
@@ -1821,6 +1823,7 @@ function personalAI(q){
   // שם
   if(ql.includes('מה שמי') || ql.includes('מי אני') || ql.includes('אתה יודע מי אני')){
     if(userProfile.name) return '😊 שמך <b>'+userProfile.name+'</b>! אני זוכר.';
+    pendingQuestion = {type:'askName'};
     return '🤔 עדיין לא סיפרת לי את שמך. מה שמך?';
   }
   if(ql.match(/שמי\s+\S+/) || ql.match(/קוראים לי\s+\S+/)){

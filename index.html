@@ -399,6 +399,12 @@ body.dark .log-item { border-color: #2a3a5c; }
 .lock-err{font-size:13px;color:var(--r600);min-height:20px;font-weight:500}
 .lock-hint{font-size:11px;color:var(--g400);margin-top:10px}
 .lock-link{background:none;border:none;color:var(--b500);font-family:'Heebo',sans-serif;font-size:12px;cursor:pointer;text-decoration:underline;margin-top:6px;display:block;width:100%}
+/* ── VOICE BUTTON PULSE ── */
+@keyframes pulse {
+  0%   { transform: scale(1);   box-shadow: 0 0 0 0 rgba(220,38,38,.4); }
+  70%  { transform: scale(1.08); box-shadow: 0 0 0 8px rgba(220,38,38,0); }
+  100% { transform: scale(1);   box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+}
 </style>
 </head>
 <body>
@@ -543,7 +549,9 @@ body.dark .log-item { border-color: #2a3a5c; }
           <div class="ai-m ai">שלום! אני מכיר את כל הנתונים הפיננסיים שלך. שאל אותי כל שאלה – הכל רץ מקומית בלי אינטרנט 🔒</div>
         </div>
         <div class="ai-row">
-          <input class="ai-in" id="aiIn" placeholder="שאל שאלה..." onkeydown="if(event.key==='Enter')sendAI()">
+          <button id="voiceBtn" onclick="toggleVoice()" title="דבר איתי 🎤"
+            style="background:var(--g100);border:none;width:48px;height:48px;border-radius:50%;font-size:20px;cursor:pointer;flex-shrink:0;transition:all .2s">🎤</button>
+          <input class="ai-in" id="aiIn" placeholder="שאל שאלה או דבר..." onkeydown="if(event.key==='Enter')sendAI()">
           <button class="ai-go" onclick="sendAI()">שלח ↗</button>
         </div>
       </div>
@@ -1512,8 +1520,94 @@ ${c.netWorth>0?'✅ נכסים עולים על החובות.':'⚠️ החובו
 
 // בסיס הידע — נשמר ב-localStorage
 // ══════════════════════════════════════
-// ⚡ ACTION AI — ביצוע פעולות אוטומטי
+// 🎤 VOICE INPUT — קלט קולי
 // ══════════════════════════════════════
+var recognition = null;
+var isListening = false;
+
+function initVoice(){
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SpeechRecognition){
+    document.getElementById('voiceBtn').style.display='none';
+    return;
+  }
+  recognition = new SpeechRecognition();
+  recognition.lang = 'he-IL';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = function(){
+    isListening = true;
+    var btn = document.getElementById('voiceBtn');
+    if(btn){
+      btn.textContent = '🔴';
+      btn.style.background = 'var(--r100)';
+      btn.style.animation = 'pulse 1s infinite';
+    }
+    var inp = document.getElementById('aiIn');
+    if(inp) inp.placeholder = 'מקשיב...';
+  };
+
+  recognition.onresult = function(event){
+    var transcript = '';
+    for(var i=event.resultIndex; i<event.results.length; i++){
+      transcript += event.results[i][0].transcript;
+    }
+    var inp = document.getElementById('aiIn');
+    if(inp) inp.value = transcript;
+    // אם תוצאה סופית — שלח אוטומטית
+    if(event.results[event.results.length-1].isFinal){
+      setTimeout(function(){
+        stopVoice();
+        if(transcript.trim()) sendAI();
+      }, 300);
+    }
+  };
+
+  recognition.onerror = function(e){
+    stopVoice();
+    var msgs = {'not-allowed':'אין הרשאת מיקרופון — אפשר בהגדרות',
+                'no-speech':'לא שמעתי כלום, נסה שוב',
+                'network':'שגיאת רשת'};
+    var el = document.getElementById('aiMsgs');
+    if(el) el.innerHTML += '<div class="ai-m ai" style="color:var(--r600)">🎤 '+(msgs[e.error]||'שגיאה: '+e.error)+'</div>';
+  };
+
+  recognition.onend = function(){
+    stopVoice();
+  };
+}
+
+function stopVoice(){
+  isListening = false;
+  var btn = document.getElementById('voiceBtn');
+  if(btn){
+    btn.textContent = '🎤';
+    btn.style.background = 'var(--g100)';
+    btn.style.animation = '';
+  }
+  var inp = document.getElementById('aiIn');
+  if(inp) inp.placeholder = 'שאל שאלה או דבר...';
+}
+
+function toggleVoice(){
+  if(!recognition){ initVoice(); }
+  if(!recognition){
+    alert('הדפדפן שלך לא תומך בזיהוי קול.\nנסה Safari ב-iOS 15+ או Chrome.');
+    return;
+  }
+  if(isListening){
+    recognition.stop();
+    stopVoice();
+  } else {
+    try{
+      recognition.start();
+    } catch(e){
+      stopVoice();
+    }
+  }
+}
 
 // מצב המתנה לתשובה מהמשתמש
 var pendingQuestion = null; // {type, data}
@@ -3102,6 +3196,7 @@ function initExtras(){
   updateHealthScore();
   loadKB();
   loadProfile();
+  initVoice();
   // הצג ברכה אישית בחלון AI
   setTimeout(function(){
     var el = document.getElementById('aiMsgs');

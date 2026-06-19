@@ -676,57 +676,63 @@ function buildProjection(n){
 
 // ── RENDER EXPENSES ──
 function renderExp(){
-  const fixedRows=expenses.map(e=>{
-    const active=expenseActiveAt(e,monOffset);
-    return`<div class="ir" style="${active?'':'opacity:.45'}">
-      <div class="ir-main">
-        <div class="ir-name" style="${active?'':'text-decoration:line-through'}">${e.name}</div>
-        <div class="ir-sub">
-          <span class="badge ${e.type==='קניות'?'ba':'bb'}">${e.type}</span>
-          ${expStatusLabel(e)}
-          ${e.note?`<span>${e.note}</span>`:''}
-        </div>
-      </div>
-      <div class="ir-amt ${active?'neg':''}" style="${active?'':'color:var(--g400)'}">${active?fmt(e.amount):'₪0'}</div>
-      <div class="ir-actions">
-        <button class="ic-btn edit" onclick="openModal('exp',${e.id})">✏️</button>
-        <button class="ic-btn del" onclick="delItem('exp',${e.id})">🗑</button>
-      </div>
-    </div>`;
+  var fixedRows=expenses.map(function(e){
+    var active=expenseActiveAt(e,monOffset);
+    var statusLbl=expStatusLabel(e);
+    var noteLbl=e.note?('<span>'+e.note+'</span>'):'';
+    var badgeCls=e.type==='קניות'?'ba':'bb';
+    return '<div class="ir" style="'+(active?'':'opacity:.45')+'">'
+      +'<div class="ir-main">'
+      +'<div class="ir-name" style="'+(active?'':'text-decoration:line-through')+'">'+e.name+'</div>'
+      +'<div class="ir-sub"><span class="badge '+badgeCls+'">'+e.type+'</span>'+statusLbl+noteLbl+'</div>'
+      +'</div>'
+      +'<div class="ir-amt '+(active?'neg':'')+'" style="'+(active?'':'color:var(--g400)')+'">'+(active?fmt(e.amount):'₪0')+'</div>'
+      +'<div class="ir-actions">'
+      +'<button class="ic-btn edit" data-t="exp" data-id="'+e.id+'" onclick="openModal(this.dataset.t,+this.dataset.id)">✏️</button>'
+      +'<button class="ic-btn del" data-t="exp" data-id="'+e.id+'" onclick="delItem(this.dataset.t,+this.dataset.id)">🗑</button>'
+      +'</div></div>';
   }).join('');
 
-  const loanRows=loans.map(l=>{
-    const active=loanActiveAt(l,monOffset);
-    const rem=loanRemainingAt(l,monOffset);
-    const notStarted=monOffset < loanOffsetFromBase(l);
+  var loanRows=loans.map(function(l){
+    var active=loanActiveAt(l,monOffset);
+    var rem=loanRemainingAt(l,monOffset);
+    var notStarted=monOffset<loanOffsetFromBase(l);
     if(notStarted){
-      const loanStart=loanOffsetFromBase(l);
-      const absM=BASE_ABS+loanStart;
-      const startLabel=MSHORT[absM%12]+"'"+(Math.floor(absM/12)%100);
-      return`<div class="ir" style="opacity:.6">
-        <div class="ir-main"><div class="ir-name">${l.name}</div>
-        <div class="ir-sub"><span class="badge ba">⏳ מתחיל ${startLabel}</span><span>${l.lender||''}</span></div></div>
-        <div class="ir-amt" style="color:var(--g400)">₪0</div>
-        <div class="ir-actions"><button class="ic-btn edit" onclick="openModal('loan',${l.id})">✏️</button><button class="ic-btn del" onclick="delItem('loan',${l.id})">🗑</button></div>
-      </div>`;
+      var loanStartOff=loanOffsetFromBase(l);
+      var absM2=BASE_ABS+loanStartOff;
+      var startLbl=MSHORT[absM2%12]+"'"+(Math.floor(absM2/12)%100);
+      return '<div class="ir" style="opacity:.6">'
+        +'<div class="ir-main"><div class="ir-name">'+l.name+'</div>'
+        +'<div class="ir-sub"><span class="badge ba">⏳ מתחיל '+startLbl+'</span><span>'+(l.lender||'')+'</span></div></div>'
+        +'<div class="ir-amt" style="color:var(--g400)">₪0</div>'
+        +'<div class="ir-actions">'
+        +'<button class="ic-btn edit" data-t="loan" data-id="'+l.id+'" onclick="openModal(this.dataset.t,+this.dataset.id)">✏️</button>'
+        +'<button class="ic-btn del" data-t="loan" data-id="'+l.id+'" onclick="delItem(this.dataset.t,+this.dataset.id)">🗑</button>'
+        +'</div></div>';
     }
-    if(!active) return`<div class="ir" style="opacity:.4">
-      <div class="ir-main"><div class="ir-name" style="text-decoration:line-through">${l.name}</div>
-      <div class="ir-sub"><span class="badge bg">✅ סוּלקה</span><span>${l.lender||''}</span></div></div>
-      <div class="ir-amt" style="color:var(--gr600)">₪0</div>
-      <div class="ir-actions"><button class="ic-btn edit" onclick="openModal('loan',${l.id})">✏️</button><button class="ic-btn del" onclick="delItem('loan',${l.id})">🗑</button></div>
-    </div>`;
-    return`<div class="ir">
-      <div class="ir-main"><div class="ir-name">${l.name}</div>
-      <div class="ir-sub"><span class="badge br">הלוואה</span><span>${l.lender||''} · עוד ${rem} תשלומים</span></div></div>
-      <div class="ir-amt neg">${fmt(l.monthlyPayment)}</div>
-      <div class="ir-actions"><button class="ic-btn edit" onclick="openModal('loan',${l.id})">✏️</button><button class="ic-btn del" onclick="delItem('loan',${l.id})">🗑</button></div>
-    </div>`;
+    if(!active) return '<div class="ir" style="opacity:.4">'
+      +'<div class="ir-main"><div class="ir-name" style="text-decoration:line-through">'+l.name+'</div>'
+      +'<div class="ir-sub"><span class="badge bg">✅ סוּלקה</span><span>'+(l.lender||'')+'</span></div></div>'
+      +'<div class="ir-amt" style="color:var(--gr600)">₪0</div>'
+      +'<div class="ir-actions">'
+      +'<button class="ic-btn edit" data-t="loan" data-id="'+l.id+'" onclick="openModal(this.dataset.t,+this.dataset.id)">✏️</button>'
+      +'<button class="ic-btn del" data-t="loan" data-id="'+l.id+'" onclick="delItem(this.dataset.t,+this.dataset.id)">🗑</button>'
+      +'</div></div>';
+    return '<div class="ir">'
+      +'<div class="ir-main"><div class="ir-name">'+l.name+'</div>'
+      +'<div class="ir-sub"><span class="badge br">הלוואה</span><span>'+(l.lender||'')+' · עוד '+rem+' תשלומים</span></div></div>'
+      +'<div class="ir-amt neg">'+fmt(l.monthlyPayment)+'</div>'
+      +'<div class="ir-actions">'
+      +'<button class="ic-btn edit" data-t="loan" data-id="'+l.id+'" onclick="openModal(this.dataset.t,+this.dataset.id)">✏️</button>'
+      +'<button class="ic-btn del" data-t="loan" data-id="'+l.id+'" onclick="delItem(this.dataset.t,+this.dataset.id)">🗑</button>'
+      +'</div></div>';
   }).join('');
 
-  document.getElementById('expList').innerHTML=fixedRows+loanRows;
-  const m=getMonthData(monOffset);
-  document.getElementById('expTotal').textContent=fmt(m.totalExp);
+  var expEl=document.getElementById('expList');
+  if(expEl) expEl.innerHTML=fixedRows+loanRows;
+  var m=getMonthData(monOffset);
+  var expTot=document.getElementById('expTotal');
+  if(expTot) expTot.textContent=fmt(m.totalExp);
 }
 
 // ── RENDER INCOMES ──
@@ -751,23 +757,23 @@ function renderInc(){
 
 // ── RENDER LOANS ──
 function renderLoans(){
-  const cont=document.getElementById('loanList');
+  var cont=document.getElementById('loanList');
   if(!loans.length){
     cont.innerHTML='<div style="text-align:center;padding:30px;color:var(--g400)">✅ אין הלוואות פעילות</div>';
     ['lDebt','lMonthly','lMonths'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent='₪0';});
     renderExp(); return;
   }
-  cont.innerHTML=loans.map(l=>{
-    const totalDebt=l.remainingPayments*l.monthlyPayment;
-    const paidDebt=l.totalAmount-totalDebt;
-    const pct=l.totalAmount>0?Math.min(100,Math.max(0,(paidDebt/l.totalAmount)*100)):0;
+  cont.innerHTML=loans.map(function(l){
+    var totalDebt=l.remainingPayments*l.monthlyPayment;
+    var paidDebt=l.totalAmount-totalDebt;
+    var pct=l.totalAmount>0?Math.min(100,Math.max(0,(paidDebt/l.totalAmount)*100)):0;
     var lsAbs=BASE_ABS+loanOffsetFromBase(l);
     var endAbs=lsAbs+l.remainingPayments;
-    const endStr=MONTHS[endAbs%12]+' '+Math.floor(endAbs/12);
+    var endStr=MONTHS[endAbs%12]+' '+Math.floor(endAbs/12);
     var startAbs=BASE_ABS+loanOffsetFromBase(l);
-    const startStr=MONTHS[startAbs%12]+' '+Math.floor(startAbs/12);
-    const notStarted=monOffset<loanOffsetFromBase(l);
-    const startNote=notStarted?(' · <span style="color:var(--a600)">מתחיל '+startStr+'</span>'):'';
+    var startStr=MONTHS[startAbs%12]+' '+Math.floor(startAbs/12);
+    var notStarted=monOffset<loanOffsetFromBase(l);
+    var startNote=notStarted?(' · <span style="color:var(--a600)">מתחיל '+startStr+'</span>'):'';
 
     // טבלת פירוט חודשי — 6 חודשים קדימה מתאריך ההתחלה
     var tableRows='';
@@ -820,8 +826,8 @@ function renderLoans(){
       :'')
       +'</div>';
   }).join('');
-  document.getElementById('lDebt').textContent=fmt(loans.reduce((s,l)=>s+loanRemainingAt(l,monOffset)*l.monthlyPayment,0));
-  document.getElementById('lMonthly').textContent=fmt(loans.reduce((s,l)=>s+(loanActiveAt(l,monOffset)?l.monthlyPayment:0),0));
+  var lDebtEl=document.getElementById('lDebt');if(lDebtEl)lDebtEl.textContent=fmt(loans.reduce(function(s,l){return s+loanRemainingAt(l,monOffset)*l.monthlyPayment;},0));
+  var lMonEl=document.getElementById('lMonthly');if(lMonEl)lMonEl.textContent=fmt(loans.reduce(function(s,l){return s+(loanActiveAt(l,monOffset)?l.monthlyPayment:0);},0));
   var maxRem=loans.length?Math.max.apply(null,loans.map(function(l){return loanRemainingAt(l,monOffset);})):0;
   document.getElementById('lMonths').textContent=maxRem||'0';
   renderExp(); // סנכרון לטאב הוצאות
@@ -829,27 +835,44 @@ function renderLoans(){
 
 // ── RENDER SAVINGS ──
 function renderSav(){
-  document.getElementById('savGrid').innerHTML=savings.map(s=>`
-    <div class="si"><div class="si-name">🏦 ${s.name}</div><div class="si-val">${fmt(s.amount)}</div><div class="si-date">${s.date}</div>
-    <div class="si-actions"><button class="ic-btn edit" onclick="openModal('sav',${s.id})" style="width:28px;height:28px;font-size:14px">✏️</button><button class="ic-btn del" onclick="delItem('sav',${s.id})" style="width:28px;height:28px;font-size:14px">🗑</button></div></div>`).join('');
-  const t=savings.reduce((s,sv)=>s+sv.amount,0);
-  document.getElementById('sSav').textContent=fmt(t);
-  document.getElementById('savTotal').textContent=fmt(t);
+  var sgEl=document.getElementById('savGrid');
+  if(sgEl) sgEl.innerHTML=savings.map(function(s){
+    return '<div class="si">'
+      +'<div class="si-name">🏦 '+s.name+'</div>'
+      +'<div class="si-val">'+fmt(s.amount)+'</div>'
+      +'<div class="si-date">'+s.date+'</div>'
+      +'<div class="si-actions">'
+      +'<button class="ic-btn edit" data-t="sav" data-id="'+s.id+'" onclick="openModal(this.dataset.t,+this.dataset.id)" style="width:28px;height:28px;font-size:14px">✏️</button>'
+      +'<button class="ic-btn del" data-t="sav" data-id="'+s.id+'" onclick="delItem(this.dataset.t,+this.dataset.id)" style="width:28px;height:28px;font-size:14px">🗑</button>'
+      +'</div></div>';
+  }).join('');
+  var t=savings.reduce(function(s,sv){return s+sv.amount;},0);
+  var sSavEl=document.getElementById('sSav');
+  if(sSavEl) sSavEl.textContent=fmt(t);
+  var savTotEl=document.getElementById('savTotal');
+  if(savTotEl) savTotEl.textContent=fmt(t);
 }
 
 // ── RENDER PENSION ──
 function renderPension(){
-  document.getElementById('pensionList').innerHTML=pension.map(p=>`
-    <div class="ir"><div class="ir-main"><div class="ir-name">${p.name}</div>
-    <div class="ir-sub"><span class="badge ${p.type==='pos'?'bg':'ba'}">${p.change}</span><span>לחודש</span></div></div>
-    <div class="ir-amt pos">${fmt(p.monthly)}</div>
-    <div class="ir-actions"><button class="ic-btn edit" onclick="openModal('pension',${p.id})">✏️</button><button class="ic-btn del" onclick="delItem('pension',${p.id})">🗑</button></div></div>`).join('');
-  document.getElementById('pensionTotal').textContent=fmt(pension.reduce((s,p)=>s+p.monthly,0));
+  var pEl=document.getElementById('pensionList');
+  if(pEl) pEl.innerHTML=pension.map(function(p){
+    return '<div class="ir">'
+      +'<div class="ir-main"><div class="ir-name">'+p.name+'</div>'
+      +'<div class="ir-sub"><span class="badge '+(p.type==='pos'?'bg':'ba')+'">'+p.change+'</span><span>לחודש</span></div></div>'
+      +'<div class="ir-amt pos">'+fmt(p.monthly)+'</div>'
+      +'<div class="ir-actions">'
+      +'<button class="ic-btn edit" data-t="pension" data-id="'+p.id+'" onclick="openModal(this.dataset.t,+this.dataset.id)">✏️</button>'
+      +'<button class="ic-btn del" data-t="pension" data-id="'+p.id+'" onclick="delItem(this.dataset.t,+this.dataset.id)">🗑</button>'
+      +'</div></div>';
+  }).join('');
+  var penEl=document.getElementById('pensionTotal');
+  if(penEl) penEl.textContent=fmt(pension.reduce(function(s,p){return s+p.monthly;},0));
 }
 
 // ── SUMMARY ──
 function updateSummary(){
-  const m=getMonthData(monOffset);
+  var m=getMonthData(monOffset);
   var sInc=document.getElementById('sInc');
   var sExp=document.getElementById('sExp');
   var sBal=document.getElementById('sBal');
@@ -1119,20 +1142,20 @@ function toggleLF(){
 let charts={};
 function renderCharts(){
   ['bar','pie','line'].forEach(k=>{if(charts[k])charts[k].destroy();});
-  const p12=buildProjection(12);
+  var p12=buildProjection(12);
   charts.bar=new Chart(document.getElementById('cBar'),{type:'bar',data:{labels:p12.labels,datasets:[
     {label:'הכנסה',data:p12.incArr,backgroundColor:'rgba(30,144,212,.75)',borderRadius:4,borderSkipped:false},
     {label:'הוצאות',data:p12.expArr,backgroundColor:'rgba(220,38,38,.65)',borderRadius:4,borderSkipped:false}
   ]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top',labels:{font:{size:11}}}},scales:{y:{ticks:{callback:v=>'₪'+Math.round(v/1000)+'K',font:{size:10}},grid:{color:'#f1f5f9'}},x:{ticks:{font:{size:10}}}}}});
 
-  const byType={};
+  var byType={};
   expenses.forEach(e=>{byType[e.type]=(byType[e.type]||0)+e.amount;});
-  const lAct=loans.reduce((s,l)=>s+(l.remainingPayments>0?l.monthlyPayment:0),0);
+  var lAct=loans.reduce((s,l)=>s+(l.remainingPayments>0?l.monthlyPayment:0),0);
   if(lAct>0)byType['הלוואות']=lAct;
-  const types=Object.keys(byType);
+  var types=Object.keys(byType);
   charts.pie=new Chart(document.getElementById('cPie'),{type:'doughnut',data:{labels:types,datasets:[{data:types.map(t=>byType[t]),backgroundColor:['#1e90d4','#e24b4a','#1d9e75','#d97706','#534ab7','#f472b6']}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{font:{size:11},padding:8}}}}});
 
-  const p24=buildProjection(24);
+  var p24=buildProjection(24);
   charts.line=new Chart(document.getElementById('cLine'),{type:'line',data:{labels:p24.labels,datasets:[
     {label:'יתרה חודשית',data:p24.balances,borderColor:'#1e90d4',backgroundColor:'rgba(30,144,212,.08)',fill:true,tension:0.4,pointRadius:2},
     {label:'מצטבר',data:p24.cumulArr,borderColor:'#16a34a',fill:false,tension:0.4,pointRadius:2,borderDash:[5,4]}
@@ -2382,27 +2405,25 @@ function addLog(action, name, amount, type){
 }
 
 function renderLog(){
-  const el = document.getElementById('logList');
-  if(!el) return;
+  var ll=document.getElementById('logList');
+  if(!ll) return;
   if(!transLog.length){
-    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--g400)">אין פעולות עדיין.</div>';
+    ll.innerHTML='<div style="text-align:center;padding:24px;color:var(--g400)">אין פעולות ביומן עדיין.</div>';
     return;
   }
-  const icons = { add:'➕', edit:'✏️', del:'🗑️', import:'📂', export:'📤' };
-  el.innerHTML = transLog.map(e => {
-    const dt = new Date(e.ts);
-    const timeStr = dt.toLocaleDateString('he-IL', {day:'numeric',month:'short'}) + ' ' +
-                    dt.toLocaleTimeString('he-IL', {hour:'2-digit',minute:'2-digit'});
-    const amtStr = e.amount ? fmt(e.amount) : '';
-    const clr = e.action==='del' ? 'var(--r600)' : e.action==='add' ? 'var(--gr600)' : 'var(--b600)';
-    return `<div class="log-item">
-      <div class="log-icon">${icons[e.action]||'📋'}</div>
-      <div class="log-main">
-        <div class="log-name">${e.name}</div>
-        <div class="log-time">${timeStr} · ${e.type}</div>
-      </div>
-      ${amtStr ? `<div class="log-amt" style="color:${clr}">${amtStr}</div>` : ''}
-    </div>`;
+  var iconMap={add:'➕',del:'🗑️',upd:'✏️',nav:'🔍'};
+  ll.innerHTML=transLog.slice().reverse().map(function(item){
+    var icon=iconMap[item.action]||'📌';
+    var d=new Date(item.ts);
+    var timeStr=d.toLocaleDateString('he-IL')+' '+d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
+    return '<div class="log-item">'
+      +'<div class="log-icon">'+icon+'</div>'
+      +'<div class="log-main">'
+      +'<div class="log-name">'+item.name+'</div>'
+      +'<div class="log-time">'+timeStr+'</div>'
+      +'</div>'
+      +'<div class="log-amt '+(item.action==='del'?'neg':'pos')+'">'+fmt(item.amount)+'</div>'
+      +'</div>';
   }).join('');
 }
 
@@ -2440,32 +2461,28 @@ function updateLogBadge(){
 // ══════════════════════════════════════
 
 function renderGoals(){
-  const el = document.getElementById('goalsList');
-  if(!el) return;
+  var gl=document.getElementById('goalsList');
+  if(!gl) return;
   if(!goals.length){
-    el.innerHTML = '<div style="text-align:center;padding:30px;color:var(--g400)">אין יעדים עדיין. הוסף יעד ראשון!</div>';
+    gl.innerHTML='<div style="text-align:center;padding:24px;color:var(--g400)">אין יעדים עדיין. הוסף יעד חיסכון!</div>';
     return;
   }
-  el.innerHTML = goals.map(g => {
-    const pct = g.target > 0 ? Math.min(100, Math.round(g.saved / g.target * 100)) : 0;
-    const remaining = Math.max(0, g.target - g.saved);
-    const done = pct >= 100;
-    return `<div class="goal-item">
-      <div class="goal-header">
-        <div class="goal-name">${done ? '✅ ' : '🎯 '}${g.name}</div>
-        <div style="display:flex;gap:6px;align-items:center">
-          <span class="goal-pct">${pct}%</span>
-          <button class="ic-btn edit" onclick="openModal('goal',${g.id})" style="width:28px;height:28px;font-size:14px">✏️</button>
-          <button class="ic-btn del" onclick="delItem('goal',${g.id})" style="width:28px;height:28px;font-size:14px">🗑</button>
-        </div>
-      </div>
-      <div class="goal-bar"><div class="goal-fill" style="width:${pct}%;${done?'background:var(--gr600)':''}"></div></div>
-      <div class="goal-amounts">
-        <span>נחסך: <b>${fmt(g.saved)}</b></span>
-        <span>${done ? '🎉 הושג!' : `נשאר: <b>${fmt(remaining)}</b>`}</span>
-        <span>יעד: <b>${fmt(g.target)}</b></span>
-      </div>
-    </div>`;
+  gl.innerHTML=goals.map(function(g){
+    var pct=g.target>0?Math.min(100,Math.round(g.saved/g.target*100)):0;
+    var done=pct>=100;
+    return '<div class="goal-item">'
+      +'<div class="goal-header">'
+      +'<div class="goal-name">'+(done?'✅ ':'')+g.name+'</div>'
+      +'<div class="ir-actions">'
+      +'<button class="ic-btn edit" data-t="goal" data-id="'+g.id+'" onclick="openModal(this.dataset.t,+this.dataset.id)">✏️</button>'
+      +'<button class="ic-btn del" data-t="goal" data-id="'+g.id+'" onclick="delItem(this.dataset.t,+this.dataset.id)">🗑</button>'
+      +'</div></div>'
+      +'<div class="goal-bar"><div class="goal-fill" style="width:'+pct+'%"></div></div>'
+      +'<div class="goal-amounts">'
+      +'<span>נחסך: <b>'+fmt(g.saved)+'</b></span>'
+      +'<span>'+pct+'%</span>'
+      +'<span>יעד: <b>'+fmt(g.target)+'</b></span>'
+      +'</div></div>';
   }).join('');
 }
 
@@ -2552,22 +2569,19 @@ function showAlerts(){
 // 🔔 ALERT BADGE on header
 // ══════════════════════════════════════
 function updateAlertBadge(){
-  const alerts = getAlerts();
-  const bad = alerts.filter(a=>a.type==='err'||a.type==='warn').length;
-  let badge = document.getElementById('alertBadge');
-  if(!badge){
-    const hdr = document.querySelector('.hdr > div:last-child');
-    if(hdr){
-      badge = document.createElement('button');
-      badge.id = 'alertBadge';
-      badge.onclick = showAlerts;
-      badge.style.cssText = 'background:none;border:none;cursor:pointer;font-size:20px;padding:2px;position:relative;';
-      hdr.insertBefore(badge, hdr.firstChild);
-    }
-  }
-  if(badge){
-    badge.textContent = bad > 0 ? '🔔' : '🔕';
-    badge.title = bad > 0 ? `${bad} התראות` : 'אין התראות';
+  var alerts=getAlerts();
+  var badge=document.getElementById('alertBadge');
+  if(!badge) return;
+  var criticalCount=alerts.filter(function(a){return a.type==='err';}).length;
+  if(criticalCount>0){
+    badge.textContent='🔔';
+    badge.style.filter='drop-shadow(0 0 4px red)';
+  } else if(alerts.length>0){
+    badge.textContent='🔔';
+    badge.style.filter='none';
+  } else {
+    badge.textContent='🔕';
+    badge.style.filter='none';
   }
 }
 

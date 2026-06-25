@@ -851,8 +851,8 @@ function importJSON(event){
     try{
       var data=JSON.parse(e.target.result);
       if(typeof data!=='object'||data===null)throw new Error('קובץ לא תקין');
-      var dateStr=data.exportedAt
-        ?new Date(data.exportedAt).toLocaleDateString('he-IL')
+      var dateStr=data.exported
+        ?new Date(data.exported).toLocaleDateString('he-IL')
         :'תאריך לא ידוע';
       // הצג פאנל אישור בתוך האפליקציה (ללא window.confirm)
       showImportConfirm(data, dateStr, status);
@@ -864,6 +864,22 @@ function importJSON(event){
   reader.readAsText(file);
 }
 
+function doImport(data, status){
+  try{
+    expenses.length=0;(data.expenses||[]).forEach(function(x){expenses.push(x);});
+    incomes.length=0;(data.incomes||[]).forEach(function(x){incomes.push(x);});
+    loans.length=0;(data.loans||[]).forEach(function(x){loans.push(x);});
+    savings.length=0;(data.savings||[]).forEach(function(x){savings.push(x);});
+    pension.length=0;(data.pension||[]).forEach(function(x){pension.push(x);});
+    goals.length=0;(data.goals||[]).forEach(function(x){goals.push(x);});
+    transLog.length=0;(data.transLog||[]).forEach(function(x){transLog.push(x);});
+    saveData();
+    syncAll();
+    if(status)status.innerHTML='<span style="color:var(--g600)">✅ הייבוא הושלם בהצלחה!</span>';
+  }catch(err){
+    if(status)status.innerHTML='<span style="color:var(--r600)">❌ שגיאה בייבוא: '+err.message+'</span>';
+  }
+}
 function showImportConfirm(data, dateStr, status){
   var overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -1525,6 +1541,7 @@ function exportJSON(){
 // ══════════════════════════════════════
 var LS_PASS='finapp_pass',LS_SESS='finapp_sess';
 function saveSession(){try{localStorage.setItem(LS_SESS,Date.now().toString());}catch(e){}}
+function clearSession(){try{localStorage.removeItem(LS_SESS);}catch(e){}}
 function checkSession(){try{var s=localStorage.getItem(LS_SESS);if(!s)return false;return(Date.now()-parseInt(s))<30*60*1000;}catch(e){return false;}}
 function lockSubmit(){
   var inp=document.getElementById('lockInput'),err=document.getElementById('lockErr');

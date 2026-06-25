@@ -582,12 +582,12 @@ function fmt(n){return '₪'+Math.round(n).toLocaleString('he-IL');}
 var editId=null,editType=null;
 
 // ── קבוצות פעלים מאוחדות (כל הצורות הנפוצות בעברית — לשימוש בכל מנועי ה-AI) ──
-var V_ADD    = '(?:רשום|תרשום|הוסף|תוסיף|הכנס|תכניס|צור|תיצור)';
-var V_UPDATE = '(?:עדכן|תעדכן|שנה|תשנה|תחליף|החלף|עדכנו)';
-var V_DELETE = '(?:מחק|תמחק|הסר|תסיר|בטל|תבטל|תגרע|גרע|הוצא)';
-var V_SHOW   = '(?:הצג|תציג|תראה|הראה|תן לי|בדוק|תבדוק)';
-var V_NAV    = '(?:עבור|תעבור|לך|תלך|פתח|תפתח)';
-var V_FIND   = '(?:מצא|תמצא|חפש|תחפש|איתור)';
+var V_ADD    = '(?:רשום|תרשום|הוסף|תוסיף|להוסיף|נוסיף|הכנס|תכניס|צור|תיצור)';
+var V_UPDATE = '(?:עדכן|תעדכן|לעדכן|שנה|תשנה|לשנות|תחליף|החלף|להחליף|עדכנו)';
+var V_DELETE = '(?:מחק|תמחק|תמחוק|למחוק|הסר|תסיר|להסיר|בטל|תבטל|תגרע|גרע|הוצא)';
+var V_SHOW   = '(?:הצג|תציג|להציג|תראה|הראה|תן לי|בדוק|תבדוק)';
+var V_NAV    = '(?:עבור|תעבור|לך|תלך|פתח|תפתח|לפתוח)';
+var V_FIND   = '(?:מצא|תמצא|למצוא|חפש|תחפש|איתור)';
 
 // ── DATA ──
 var expenses=[];
@@ -1867,12 +1867,12 @@ function renderLog(){
 // ══════════════════════════════════════
 // ⚡ ACTION AI + PERSONAL AI
 // ══════════════════════════════════════
-var V_ADD='(?:רשום|תרשום|הוסף|תוסיף|הכנס|תכניס|צור|תיצור)';
-var V_UPDATE='(?:עדכן|תעדכן|שנה|תשנה|תחליף|החלף)';
-var V_DELETE='(?:מחק|תמחק|הסר|תסיר|בטל|תבטל|תגרע|גרע|הוצא)';
-var V_SHOW='(?:הצג|תציג|תראה|הראה|תן לי|בדוק|תבדוק)';
-var V_NAV='(?:עבור|תעבור|לך|תלך|פתח|תפתח)';
-var V_FIND='(?:מצא|תמצא|חפש|תחפש|איתור)';
+var V_ADD='(?:רשום|תרשום|הוסף|תוסיף|להוסיף|נוסיף|הכנס|תכניס|צור|תיצור)';
+var V_UPDATE='(?:עדכן|תעדכן|לעדכן|שנה|תשנה|לשנות|תחליף|החלף|להחליף)';
+var V_DELETE='(?:מחק|תמחק|תמחוק|למחוק|הסר|תסיר|להסיר|בטל|תבטל|תגרע|גרע|הוצא)';
+var V_SHOW='(?:הצג|תציג|להציג|תראה|הראה|תן לי|בדוק|תבדוק)';
+var V_NAV='(?:עבור|תעבור|לך|תלך|פתח|תפתח|לפתוח)';
+var V_FIND='(?:מצא|תמצא|למצוא|חפש|תחפש|איתור)';
 
 function actionAI(q){
   var ql=q.toLowerCase().trim();
@@ -1891,7 +1891,8 @@ function actionAI(q){
     var amt=parseAmount(ql);
     if(amt>0){
       var nm=ql.match(/(?:על|עבור|בשם)\s*([\u05d0-\u05ea\w][\u05d0-\u05ea\w\s]{1,20}?)(?:\s+ב|\d|$)/);
-      var expName=nm?nm[1].trim():'הוצאה חדשה';
+      var nmFB=ql.match(/(?:הוצאה|תשלום|חיוב)\s+(?:חד\s*פעמית?\s+)?([\u05d0-\u05eaA-Za-z][\u05d0-\u05eaA-Za-z\s]{1,20}?)(?:\s+ב|\s*(?:₪|ש"ח|שח)?\s*\d|$)/);
+      var expName=nm?nm[1].trim():(nmFB?nmFB[1].trim():'הוצאה חדשה');
       var isOne=/חד\s*פעמי|פעם\s+אחת/.test(ql);
       var sd=parseMonth(ql);
       expenses.push({id:Date.now(),name:expName,amount:amt,type:isOne?'אחר':'הוראת קבע',note:isOne?'חד פעמי':'',startDate:sd,months:isOne?1:0});
@@ -1907,7 +1908,8 @@ function actionAI(q){
     var amt2=parseAmount(ql);
     if(amt2>0){
       var nm2=ql.match(/(?:מ|ממקור|בשם)\s+([\u05d0-\u05ea\w\s]{2,20})/);
-      var incName=nm2?nm2[1].trim():(ql.includes('משכורת')||ql.includes('שכר')?'משכורת':'הכנסה');
+      var nm2FB=ql.match(/(?:הכנסה)\s+([\u05d0-\u05eaA-Za-z][\u05d0-\u05eaA-Za-z\s]{1,20}?)(?:\s+ב|\s*(?:₪|ש"ח|שח)?\s*\d|$)/);
+      var incName=nm2?nm2[1].trim():(nm2FB?nm2FB[1].trim():(ql.includes('משכורת')||ql.includes('שכר')?'משכורת':'הכנסה'));
       incomes.push({id:Date.now(),name:incName,amount:amt2,freq:'חודשי'});
       syncAll();addLog('add',incName,amt2,'inc');
       return '✅ <b>הוספתי הכנסה:</b><br><b>'+incName+'</b> — '+fmt(amt2)+'/חודש';
@@ -2014,6 +2016,20 @@ function actionAI(q){
     if(!goals.length)return 'אין יעדים.';
     setTimeout(function(){showOverlay('goals');},800);
     return '🎯 <b>יעדים:</b><br><br>'+goals.map(function(g){return '• '+g.name+': '+fmt(g.saved)+' / <b>'+fmt(g.target)+'</b>';}).join('<br>');
+  }
+  // ── הוספה גנרית: "הוסף X 200" בלי מילת סוג מפורשת -> נופל להוצאה כברירת מחדל ──
+  var genM=new RegExp(V_ADD+'\\s*(?:לי\\s*)?([\u05d0-\u05eaA-Za-z][\u05d0-\u05eaA-Za-z\\s]{1,20}?)\\s*(?:₪|ש"ח|שח)?\\s*\\d').exec(ql);
+  if(genM){
+    var genAmt=parseAmount(ql);
+    if(genAmt>0){
+      var genName=genM[1].trim();
+      var genIsOne=/חד\s*פעמי|פעם\s+אחת/.test(ql);
+      var genDate=parseMonth(ql);
+      expenses.push({id:Date.now(),name:genName,amount:genAmt,type:genIsOne?'אחר':'הוראת קבע',note:genIsOne?'חד פעמי':'',startDate:genDate,months:genIsOne?1:0});
+      syncAll();addLog('add',genName,genAmt,'exp');
+      setTimeout(function(){showOverlay('exp');},1200);
+      return '✅ <b>הנחתי שזו הוצאה והוספתי:</b><br>📌 <b>'+genName+'</b> — <b>'+fmt(genAmt)+'</b>'+(genIsOne?' · חד פעמי':' · חודשי')+'<br>📅 מ-'+genDate;
+    }
   }
   return null;
 }

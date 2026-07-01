@@ -377,7 +377,7 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
 .alert-icon{font-size:20px;flex-shrink:0}.alert-text{font-size:13px;line-height:1.5}
 .alert-title{font-weight:600;margin-bottom:2px}
 /* ── OVERLAY ── */
-.panel-overlay{position:fixed;top:0;right:0;bottom:0;left:0;z-index:300;background:rgba(248,250,252,0.98);overflow-y:auto;padding:12px 12px 80px;animation:slideUp .25s ease}
+.panel-overlay{position:fixed;top:0;right:0;bottom:0;left:0;z-index:300;background:rgba(248,250,252,0.98);overflow-y:auto;padding:calc(12px + env(safe-area-inset-top, 0px)) 12px 80px;animation:slideUp .25s ease}
 @keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
 .overlay-header{display:flex;align-items:center;justify-content:space-between;padding:10px 4px 14px;position:sticky;top:0;background:inherit;z-index:10}
 .overlay-title{font-size:17px;font-weight:700;color:var(--g800)}
@@ -385,7 +385,7 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
 /* ── AI FIRST LAYOUT ── */
 .app{padding-bottom:0!important}
 #p-ai{display:flex;flex-direction:column;height:100svh;height:100vh;padding:0}
-.ai-header-bar{background:linear-gradient(135deg,var(--b700),var(--b500));padding-top:calc(16px + env(safe-area-inset-top));padding-right:16px;padding-bottom:10px;padding-left:16px;color:white;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.ai-header-bar{background:linear-gradient(135deg,var(--b700),var(--b500));padding:calc(12px + env(safe-area-inset-top, 0px)) 16px 10px;color:white;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .ai-header-title{font-size:16px;font-weight:700}
 .ai-header-sub{font-size:11px;opacity:.75;margin-top:1px}
 .ai-header-right{display:flex;align-items:center;gap:8px}
@@ -399,7 +399,7 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
 .qa-btn{background:var(--b50);border:1px solid var(--b100);color:var(--b700);padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;white-space:nowrap;cursor:pointer;font-family:'Heebo',sans-serif;flex-shrink:0}
 .qa-btn:active{background:var(--b500);color:white}
 /* ── LOGIN ── */
-.lock-screen{position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;background:linear-gradient(160deg,#dbeeff,#f0f9ff 50%,#e8f0fa);display:none;align-items:center;justify-content:center;padding:calc(20px + env(safe-area-inset-top)) 20px calc(20px + env(safe-area-inset-bottom))}
+.lock-screen{position:fixed;top:0;right:0;bottom:0;left:0;z-index:9999;background:linear-gradient(160deg,#dbeeff,#f0f9ff 50%,#e8f0fa);display:none;align-items:center;justify-content:center;padding:20px}
 .lock-screen.show{display:flex}
 .lock-card{background:#fff;border-radius:24px;padding:36px 28px;width:100%;max-width:360px;box-shadow:0 8px 40px rgba(14,90,138,.18);text-align:center}
 .lock-icon{font-size:52px;margin-bottom:12px}
@@ -428,7 +428,7 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
     <button class="lock-btn" onclick="lockSubmit()" id="lockBtn">🔓 כניסה</button>
     <div class="lock-err" id="lockErr"></div>
     <div class="lock-hint" id="lockHint"></div>
-    <!-- כפתור שינוי סיסמה הוסר ממסך הנעילה -->
+    <!-- כפתור שינוי סיסמה הוסר ממסך הנעילה מטעמי אבטחה: שינוי סיסמה אפשרי רק מתוך פאנל ההגדרות, לאחר כניסה -->
   </div>
 </div>
 
@@ -529,7 +529,7 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
     <p style="font-size:12px;color:var(--g500);margin-bottom:12px">כשפותחים מסך (הוצאות, הלוואות וכו') — אחרי כמה זמן חוזרים אוטומטית למסך ה-AI?</p>
     <div id="timerOptions" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"></div>
   </div>
-  <div class="pc"><div class="ph"><div class="pt">🔑 אבטחה</div></div><button class="btn-add" style="width:100%;justify-content:center;background:var(--g600);margin-bottom:8px" onclick="showChangePass()">🔑 שנה סיסמה</button><button class="btn-add" style="width:100%;justify-content:center;background:var(--r600)" onclick="logoutApp()">🚪 נעל</button></div>
+  <div class="pc"><div class="ph"><div class="pt">🔑 אבטחה</div></div><button class="btn-add" style="width:100%;justify-content:center;background:var(--g600);margin-bottom:8px" onclick="toggleChangePassForm()">🔑 שנה סיסמה</button><div id="changePassForm" style="display:none;margin-bottom:8px"><input type="password" id="cpOld" placeholder="סיסמה נוכחית" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:14px"><input type="password" id="cpNew" placeholder="סיסמה חדשה (לפחות 4 תווים)" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:14px"><input type="password" id="cpNew2" placeholder="אימות סיסמה חדשה" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:14px"><div id="cpErr" style="font-size:12px;margin-bottom:6px;min-height:16px"></div><button class="btn-add" style="width:100%;justify-content:center" onclick="submitChangePass()">✓ עדכן סיסמה</button></div><button class="btn-add" style="width:100%;justify-content:center;background:var(--r600)" onclick="logoutApp()">🚪 נעל</button></div>
   <div class="pc" style="background:var(--g50)"><div style="font-size:12px;font-weight:600;margin-bottom:6px">ℹ️ מידע</div><div id="storageInfo" style="font-size:12px;color:var(--g500);line-height:1.8"></div></div>
 </div>
 
@@ -851,8 +851,8 @@ function importJSON(event){
     try{
       var data=JSON.parse(e.target.result);
       if(typeof data!=='object'||data===null)throw new Error('קובץ לא תקין');
-      var dateStr=data.exportedAt
-        ?new Date(data.exportedAt).toLocaleDateString('he-IL')
+      var dateStr=data.exported
+        ?new Date(data.exported).toLocaleDateString('he-IL')
         :'תאריך לא ידוע';
       // הצג פאנל אישור בתוך האפליקציה (ללא window.confirm)
       showImportConfirm(data, dateStr, status);
@@ -864,6 +864,22 @@ function importJSON(event){
   reader.readAsText(file);
 }
 
+function doImport(data, status){
+  try{
+    expenses.length=0;(data.expenses||[]).forEach(function(x){expenses.push(x);});
+    incomes.length=0;(data.incomes||[]).forEach(function(x){incomes.push(x);});
+    loans.length=0;(data.loans||[]).forEach(function(x){loans.push(x);});
+    savings.length=0;(data.savings||[]).forEach(function(x){savings.push(x);});
+    pension.length=0;(data.pension||[]).forEach(function(x){pension.push(x);});
+    goals.length=0;(data.goals||[]).forEach(function(x){goals.push(x);});
+    transLog.length=0;(data.transLog||[]).forEach(function(x){transLog.push(x);});
+    saveData();
+    syncAll();
+    if(status)status.innerHTML='<span style="color:var(--g600)">✅ הייבוא הושלם בהצלחה!</span>';
+  }catch(err){
+    if(status)status.innerHTML='<span style="color:var(--r600)">❌ שגיאה בייבוא: '+err.message+'</span>';
+  }
+}
 function showImportConfirm(data, dateStr, status){
   var overlay=document.createElement('div');
   overlay.style.cssText='position:fixed;top:0;right:0;bottom:0;left:0;background:rgba(0,0,0,.5);z-index:9000;display:flex;align-items:center;justify-content:center;padding:20px';
@@ -888,30 +904,7 @@ function showImportConfirm(data, dateStr, status){
 // ── נעילה ──
 function logoutApp(){
   clearSession();
-  // הצג מסך נעילה מחדש ללא reload
-  try{
-    var ls=document.getElementById('lockScreen');
-    if(ls){
-      ls.style.display='flex';
-      var inp=document.getElementById('lockInput');
-      if(inp){inp.value='';inp.focus();}
-      var err=document.getElementById('lockErr');
-      if(err)err.textContent='';
-    }
-  }catch(e){window.location.reload();}
-}
-
-// ── איפוס סיסמת מנהל (קוד גישה מיוחד) ──
-// להשתמש בקונסול הדפדפן: adminResetPassword('הסיסמה_החדשה')
-function adminResetPassword(newPass){
-  var ADMIN_CODE='ADMIN_RESET_2024';
-  var confirmed=prompt('הכנס קוד מנהל:');
-  if(confirmed!==ADMIN_CODE){alert('❌ קוד מנהל שגוי.');return;}
-  if(!newPass||newPass.length<4){alert('❌ הסיסמה קצרה מדי (מינימום 4 תווים).');return;}
-  try{localStorage.setItem(LS_PASS,newPass);}catch(e){alert('❌ שגיאה בשמירה.');return;}
-  clearSession();
-  alert('✅ הסיסמה אופסה ל: '+newPass+'\nכנס עם הסיסמה החדשה.');
-  logoutApp();
+  window.location.reload();
 }
 
 // ── מידע אחסון ──
@@ -1548,6 +1541,7 @@ function exportJSON(){
 // ══════════════════════════════════════
 var LS_PASS='finapp_pass',LS_SESS='finapp_sess';
 function saveSession(){try{localStorage.setItem(LS_SESS,Date.now().toString());}catch(e){}}
+function clearSession(){try{localStorage.removeItem(LS_SESS);}catch(e){}}
 function checkSession(){try{var s=localStorage.getItem(LS_SESS);if(!s)return false;return(Date.now()-parseInt(s))<30*60*1000;}catch(e){return false;}}
 function lockSubmit(){
   var inp=document.getElementById('lockInput'),err=document.getElementById('lockErr');
@@ -1570,10 +1564,25 @@ function unlock(){
   try{setInterval(saveData,30*1000);}catch(e){}
   try{initExtras();}catch(e){}
 }
-function showChangePass(){
-  var pass=prompt('הכנס סיסמה חדשה (לפחות 4 תווים):');
-  if(pass&&pass.length>=4){try{localStorage.setItem(LS_PASS,pass);}catch(e){}alert('✅ הסיסמה שונתה!');}
-  else if(pass!==null){alert('❌ הסיסמה קצרה מדי.');}
+function toggleChangePassForm(){
+  var f=document.getElementById('changePassForm');
+  if(!f)return;
+  var show=f.style.display==='none';
+  f.style.display=show?'block':'none';
+  var o=document.getElementById('cpOld'),n=document.getElementById('cpNew'),n2=document.getElementById('cpNew2'),e=document.getElementById('cpErr');
+  if(o)o.value='';if(n)n.value='';if(n2)n2.value='';if(e)e.textContent='';
+  if(show&&o)o.focus();
+}
+function submitChangePass(){
+  var o=document.getElementById('cpOld'),n=document.getElementById('cpNew'),n2=document.getElementById('cpNew2'),e=document.getElementById('cpErr');
+  var oldPass=o?o.value:'',newPass=n?n.value:'',newPass2=n2?n2.value:'';
+  var stored=null;try{stored=localStorage.getItem(LS_PASS);}catch(err){}
+  if(stored&&oldPass!==stored){if(e){e.style.color='var(--r600)';e.textContent='❌ הסיסמה הנוכחית שגויה.';}if(o){o.value='';o.focus();}return;}
+  if(!newPass||newPass.length<4){if(e){e.style.color='var(--r600)';e.textContent='❌ הסיסמה החדשה חייבת להיות לפחות 4 תווים.';}return;}
+  if(newPass!==newPass2){if(e){e.style.color='var(--r600)';e.textContent='❌ הסיסמאות החדשות אינן תואמות.';}return;}
+  try{localStorage.setItem(LS_PASS,newPass);}catch(err){}
+  if(e){e.style.color='var(--g600)';e.textContent='✅ הסיסמה שונתה בהצלחה!';}
+  setTimeout(function(){toggleChangePassForm();},1500);
 }
 
 // ══════════════════════════════════════
@@ -1842,8 +1851,9 @@ document.addEventListener('DOMContentLoaded',function(){
   var d=new Date();
   var hdrDate=document.getElementById('hdrDate');if(hdrDate)hdrDate.textContent=d.toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long'});
   var stored=null;try{stored=localStorage.getItem(LS_PASS);}catch(e){}
-  var lockTitle=document.getElementById('lockTitle'),lockSub=document.getElementById('lockSub'),lockBtn2=document.getElementById('lockBtn'),lockHint=document.getElementById('lockHint');
+  var lockTitle=document.getElementById('lockTitle'),lockSub=document.getElementById('lockSub'),lockBtn2=document.getElementById('lockBtn'),lockHint=document.getElementById('lockHint'),lockChangeBtn=document.getElementById('lockChangeBtn');
   if(!stored){if(lockTitle)lockTitle.textContent='ברוך הבא!';if(lockSub)lockSub.textContent='צור סיסמה לאבטחת הנתונים';if(lockBtn2)lockBtn2.textContent='צור סיסמה ✓';if(lockHint)lockHint.textContent='הסיסמה נשמרת מקומית בלבד';}
+  else{if(lockChangeBtn)lockChangeBtn.style.display='block';}
   if(checkSession()){unlock();}else{var ls=document.getElementById('lockScreen');if(ls)ls.style.display='flex';}
   // PWA manifest disabled
 });

@@ -288,7 +288,7 @@ body{font-family:'Heebo',sans-serif;background:linear-gradient(160deg,#dbeeff,#f
 
 /* ── AI ── */
 .ai-wrap{display:flex;flex-direction:column;height:calc(100svh - 310px);min-height:320px}
-.ai-msgs{flex:1;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:9px;background:var(--g50);border-radius:var(--rs);margin-bottom:9px;border:1px solid var(--g200);-webkit-overflow-scrolling:touch}
+.ai-msgs{flex:1;min-height:0;overflow-y:auto;padding:11px;display:flex;flex-direction:column;gap:9px;background:var(--g50);border-radius:var(--rs);margin-bottom:9px;border:1px solid var(--g200);-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
 .ai-m{max-width:87%;padding:10px 13px;font-size:13px;line-height:1.6}
 .ai-m.ai{background:var(--b50);color:var(--b900);border-radius:13px 13px 13px 3px;align-self:flex-start;border:1px solid var(--b100)}
 .ai-m.me{background:var(--b500);color:#fff;border-radius:13px 13px 3px 13px;align-self:flex-end}
@@ -391,8 +391,8 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
 .ai-header-right{display:flex;align-items:center;gap:8px}
 .ai-mini-stat{background:rgba(255,255,255,.18);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;cursor:pointer;white-space:nowrap}
 .ai-body{flex:1;display:flex;flex-direction:column;padding:10px 12px 0;overflow:hidden}
-.ai-wrap{height:auto!important;min-height:auto!important;flex:1;display:flex;flex-direction:column}
-.ai-msgs{flex:1!important;height:auto!important}
+.ai-wrap{height:auto!important;min-height:0!important;flex:1;display:flex;flex-direction:column;overflow:hidden}
+.ai-msgs{flex:1!important;min-height:0!important;height:auto!important}
 .ai-footer{padding:10px 12px calc(10px + env(safe-area-inset-bottom));background:white;border-top:1px solid var(--g100);flex-shrink:0}
 .quick-actions{display:flex;gap:6px;overflow-x:auto;padding-bottom:8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .quick-actions::-webkit-scrollbar{display:none}
@@ -416,47 +416,6 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
 @keyframes pulse{0%{transform:scale(1);box-shadow:0 0 0 0 rgba(220,38,38,.4)}70%{transform:scale(1.08);box-shadow:0 0 0 8px rgba(220,38,38,0)}100%{transform:scale(1);box-shadow:0 0 0 0 rgba(220,38,38,0)}}
 </style>
 </head>
-<!-- ══════ Universal offline-cache registration + on-screen verification ══════
-     Paste this EXACT block, unedited, right before </body> in every index.html
-     on the domain. Nothing here needs per-repo changes. -->
-<div id="offline-badge" style="
-  position:fixed; bottom:8px; left:8px; z-index:99999;
-  font:11px/1.4 -apple-system,sans-serif; padding:5px 9px; border-radius:7px;
-  background:rgba(0,0,0,.78); color:#fff; direction:rtl; pointer-events:none;
-  opacity:0; transition:opacity .3s;"></div>
-<script>
-(function(){
-  const badge = document.getElementById('offline-badge');
-  function show(text, color){
-    badge.textContent = text;
-    badge.style.color = color;
-    badge.style.opacity = '1';
-    setTimeout(()=>{ badge.style.opacity = '0'; }, 6000);
-  }
-  if(!('serviceWorker' in navigator)){
-    show('⚠️ הדפדפן הזה לא תומך ב-Service Worker', '#ff6b6b');
-    return;
-  }
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').then(reg => {
-      if(navigator.serviceWorker.controller){
-        // This load was actually served/controlled by the SW → offline-ready NOW.
-        show('✅ מוכן לאופליין (מוגש מהמטמון)', '#3ecf8e');
-      } else {
-        // First-ever visit: installing now, but THIS load came from the network,
-        // not the cache. Reload once (still online) before trusting airplane mode.
-        show('⏳ טוען לראשונה — רענן פעם אחת עוד עם אינטרנט', '#f5a623');
-      }
-      reg.addEventListener('updatefound', () => {
-        console.log('[offline] new version of sw.js found, scope:', reg.scope);
-      });
-    }).catch(err => {
-      show('❌ רישום נכשל: ' + err.message, '#ff6b6b');
-    });
-  });
-})();
-</script>  
-  
 <body>
 
 <!-- מסך נעילה -->
@@ -476,7 +435,7 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
 <div class="app">
 
 <!-- AI MAIN PANEL -->
-<div id="p-ai" style="display:flex;flex-direction:column;height:100vh;padding:0">
+<div id="p-ai" style="display:flex;flex-direction:column;height:100svh;height:100vh;overflow:hidden;padding:0">
   <div class="ai-header-bar">
     <div>
       <div class="ai-header-title">💼 ניהול פיננסי</div>
@@ -609,11 +568,30 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
 // ── GLOBAL ERROR CATCHER ──
 window.onerror = function(msg,src,line,col,err){
   var div=document.createElement('div');
-  div.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#c00;color:#fff;padding:8px;font-size:11px;font-family:monospace;word-break:break-all';
-  div.textContent='ERR L'+line+': '+msg+(err?' | '+err.message:'');
+  div.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#c00;color:#fff;padding:8px 32px 8px 8px;font-size:11px;font-family:monospace;word-break:break-all;direction:ltr;text-align:left';
+  div.textContent='ERR L'+line+': '+msg+(err&&err.stack?' | '+err.stack:(err?' | '+err.message:''));
+  var x=document.createElement('span');
+  x.textContent='✕';
+  x.style.cssText='position:absolute;top:6px;left:8px;cursor:pointer;font-family:sans-serif';
+  x.onclick=function(){div.remove();};
+  div.appendChild(x);
   document.body.appendChild(div);
   return false;
 };
+window.addEventListener('unhandledrejection',function(ev){
+  try{
+    var div=document.createElement('div');
+    div.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#c60;color:#fff;padding:8px 32px 8px 8px;font-size:11px;font-family:monospace;word-break:break-all;direction:ltr;text-align:left';
+    var reason=ev.reason;
+    div.textContent='PROMISE REJECTION: '+(reason&&reason.stack?reason.stack:(reason&&reason.message?reason.message:String(reason)));
+    var x=document.createElement('span');
+    x.textContent='✕';
+    x.style.cssText='position:absolute;top:6px;left:8px;cursor:pointer;font-family:sans-serif';
+    x.onclick=function(){div.remove();};
+    div.appendChild(x);
+    document.body.appendChild(div);
+  }catch(e){}
+});
 
 // ── CONSTANTS ──
 var MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -629,6 +607,58 @@ var V_DELETE = '(?:מחק|תמחק|תמחוק|למחוק|הסר|תסיר|להס�
 var V_SHOW   = '(?:הצג|תציג|להציג|תראה|הראה|תן לי|בדוק|תבדוק)';
 var V_NAV    = '(?:עבור|תעבור|לך|תלך|פתח|תפתח|לפתוח)';
 var V_FIND   = '(?:מצא|תמצא|למצוא|חפש|תחפש|איתור)';
+
+// ── מילים נרדפות מותאמות אישית ──
+var LS_SYN='finapp_synonyms';
+var customSynonyms={};
+function loadSynonyms(){try{var r=localStorage.getItem(LS_SYN);if(r)customSynonyms=JSON.parse(r);}catch(e){customSynonyms={};}}
+function saveSynonyms(){try{localStorage.setItem(LS_SYN,JSON.stringify(customSynonyms));}catch(e){}}
+function addSynonym(word,group){
+  word=word.replace(/[|(){}[\]]/g,'').trim();
+  if(!word||word.length<2) return;
+  customSynonyms[word]=group;
+  saveSynonyms();
+  rebuildVerbPatterns();
+}
+function rebuildVerbPatterns(){
+  // base patterns (no eval — Safari safe)
+  var base={
+    add:'(?:רשום|תרשום|הוסף|תוסיף|להוסיף|נוסיף|הכנס|תכניס|צור|תיצור)',
+    update:'(?:עדכן|תעדכן|לעדכן|שנה|תשנה|לשנות|תחליף|החלף|להחליף|עדכנו)',
+    delete:'(?:מחק|תמחק|תמחוק|למחוק|הסר|תסיר|להסיר|בטל|תבטל|תגרע|גרע|הוצא)',
+    show:'(?:הצג|תציג|להציג|תראה|הראה|תן לי|בדוק|תבדוק)',
+    nav:'(?:עבור|תעבור|לך|תלך|פתח|תפתח|לפתוח)',
+    find:'(?:מצא|תמצא|למצוא|חפש|תחפש|איתור)'
+  };
+  var byGroup={add:[],update:[],delete:[],show:[],nav:[],find:[]};
+  Object.keys(customSynonyms).forEach(function(w){
+    var g=customSynonyms[w];if(byGroup[g]) byGroup[g].push(w);
+  });
+  function build(key){
+    return byGroup[key].length
+      ? base[key].slice(0,-1)+'|'+byGroup[key].join('|')+')'
+      : base[key];
+  }
+  // direct assignment — no eval(), works in Safari strict mode
+  V_ADD    = build('add');
+  V_UPDATE = build('update');
+  V_DELETE = build('delete');
+  V_SHOW   = build('show');
+  V_NAV    = build('nav');
+  V_FIND   = build('find');
+}
+function detectUnknownVerb(q){
+  var ql=q.toLowerCase().trim();
+  var allVerbs=new RegExp('(?:^| )(?:'+V_ADD+'|'+V_UPDATE+'|'+V_DELETE+'|'+V_SHOW+'|'+V_NAV+'|'+V_FIND+')(?= |$|[0-9])');
+  if(allVerbs.test(ql)) return null;
+  var FIN=/הוצאה|הכנסה|הלוואה|חיסכון|יעד|תשלום|חשמל|שכירות|ארנונה|בנק|כסף|חוב|פנסיה|גרפים|יתרה|סיכום|גיבוי/;
+  var SKIP=/^(?:מה|איך|מתי|כמה|למה|איפה|האם|מי|אני|תן|ספר|כתוב|סכם|בדוק|מצב|מחיר|שם|גיל|טלפון|עזרה|פקודות)[ $]|^(?:מה|מתי|כמה|למה|איפה|מי) /;
+  if(SKIP.test(ql)) return null;
+  if(!FIN.test(ql)&&ql.trim().split(' ').length<=2) return null;
+  var fw=ql.split(' ')[0];
+  return fw.length>=2?fw:null;
+}
+
 
 // ── DATA ──
 var expenses=[];
@@ -719,7 +749,7 @@ function renderExp(){
     var badgeCls=e.type==='קניות'?'ba':'bb';
     return '<div class="ir" style="'+(active?'':'opacity:.45')+'">'
       +'<div class="ir-main">'
-      +'<div class="ir-name" style="'+(active?'':'text-decoration:line-through')+'">'+e.name+'</div>'
+      +'<div class="ir-name" style="'+(active?'':'text-decoration:line-through')+'">'+esc(e.name)+'</div>'
       +'<div class="ir-sub"><span class="badge '+badgeCls+'">'+e.type+'</span>'+statusLbl+noteLbl+'</div>'
       +'</div>'
       +'<div class="ir-amt '+(active?'neg':'')+'" style="'+(active?'':'color:var(--g400)')+'">'+(active?fmt(e.amount):'₪0')+'</div>'
@@ -779,7 +809,7 @@ function renderLoans(){
     return '<div class="lc">'
       +'<div style="display:flex;align-items:flex-start;gap:8px">'
       +'<div style="flex:1;min-width:0">'
-      +'<div style="font-weight:600;font-size:13px">'+l.name+'</div>'
+      +'<div style="font-weight:600;font-size:13px">'+esc(l.name)+'</div>'
       +'<div style="font-size:11px;color:var(--g500);margin-top:1px">'+(l.lender||'')+(l.note?' · '+l.note:'')+' · גמר: '+endStr+startNote+'</div>'
       +'</div>'
       +'<div class="ir-actions">'
@@ -805,13 +835,16 @@ function renderLoans(){
         +'</table></div>':'')
       +'</div>';
   }).join('');
+  // חוב כולל: סכום כל ההלוואות ללא תלות מתי מתחילות
   var lDebtEl=document.getElementById('lDebt');
-  if(lDebtEl) lDebtEl.textContent=fmt(loans.reduce(function(s,l){return s+loanRemainingAt(l,monOffset)*l.monthlyPayment;},0));
+  if(lDebtEl) lDebtEl.textContent=fmt(loans.reduce(function(s,l){return s+l.remainingPayments*l.monthlyPayment;},0));
+  // לחודש הנוכחי: רק הלוואות פעילות עכשיו
   var lMonEl=document.getElementById('lMonthly');
   if(lMonEl) lMonEl.textContent=fmt(loans.reduce(function(s,l){return s+(loanActiveAt(l,monOffset)?l.monthlyPayment:0);},0));
-  var maxRem=loans.length?Math.max.apply(null,loans.map(function(l){return loanRemainingAt(l,monOffset);})):0;
+  // מספר חודשים: המקסימום מבין כל ההלוואות (כולל עתידיות)
+  var maxRem=loans.length?Math.max.apply(null,loans.map(function(l){return l.remainingPayments-(Math.max(0,monOffset-loanOffsetFromBase(l)));})):0;
   var lMonthsEl=document.getElementById('lMonths');
-  if(lMonthsEl) lMonthsEl.textContent=maxRem||'0';
+  if(lMonthsEl) lMonthsEl.textContent=Math.max(0,maxRem)||'0';
 }
 
 // ── RENDER SAVINGS ──
@@ -819,7 +852,7 @@ function renderSav(){
   var sgEl=document.getElementById('savGrid');
   if(sgEl) sgEl.innerHTML=savings.map(function(s){
     return '<div class="si">'
-      +'<div class="si-name">🏦 '+s.name+'</div>'
+      +'<div class="si-name">🏦 '+esc(s.name)+'</div>'
       +'<div class="si-val">'+fmt(s.amount)+'</div>'
       +'<div class="si-date">'+s.date+'</div>'
       +'<div class="si-actions">'
@@ -1123,6 +1156,7 @@ function renderCharts(){
 // ── AI ENGINE — מורחב עם ניווט טאבים ──
 // ══════════════════════════════════════════
 var aiTurns=0;
+var chatHistory=[];
 function ctx(){
   var inc=incomes.reduce(function(s,i){return s+i.amount;},0);
   var fixedExp=expenses.filter(function(e){return expenseActiveAt(e,monOffset);}).reduce(function(s,e){return s+e.amount;},0);
@@ -1196,14 +1230,14 @@ function localAI(q){
   // הלוואות
   if(q.includes('חוב')||q.includes('הלוואה')||q.includes('הלוואות')){
     if(!loans.length) return '✅ אין הלוואות פעילות!';
-    var lns=loans.map(function(l){return '• <b>'+l.name+'</b>: '+fmt(l.monthlyPayment)+'/חודש ('+l.remainingPayments+' תשלומים)';}).join('<br>');
+    var lns=loans.map(function(l){return '• <b>'+esc(l.name)+'</b>: '+fmt(l.monthlyPayment)+'/חודש ('+l.remainingPayments+' תשלומים)';}).join('<br>');
     return '💳 <b>הלוואות:</b><br><br>'+lns+'<br><br>סה"כ חוב: <b style="color:var(--r600)">'+fmt(c.totalDebt)+'</b>';
   }
 
   // חסכונות
   if(q.includes('חסכ')||q.includes('פנסיה')||q.includes('קרן')){
     return '🏦 <b>חסכונות:</b><br><br>'
-      +(savings.length?savings.map(function(s){return '• <b>'+s.name+'</b>: '+fmt(s.amount);}).join('<br>'):'אין חסכונות')
+      +(savings.length?savings.map(function(s){return '• <b>'+esc(s.name)+'</b>: '+fmt(s.amount);}).join('<br>'):'אין חסכונות')
       +'<br><br>סה"כ: <b>'+fmt(c.totalSav)+'</b>';
   }
 
@@ -1234,7 +1268,7 @@ function renderInc(){
   var incEl=document.getElementById('incList');
   if(!incEl) return;
   incEl.innerHTML=incomes.map(function(i){
-    return '<div class="ir"><div class="ir-main"><div class="ir-name">'+i.name+'</div>'
+    return '<div class="ir"><div class="ir-main"><div class="ir-name">'+esc(i.name)+'</div>'
       +'<div class="ir-sub"><span class="badge bg">'+i.freq+'</span></div></div>'
       +'<div class="ir-amt pos">'+fmt(i.amount)+'</div>'
       +'<div class="ir-actions">'
@@ -1317,19 +1351,19 @@ function openModal(type,id){
   if(type==='exp'||type==='inc'){
     var isInc=(type==='inc');
     moTitle.textContent=isEdit?(isInc?'✏️ עריכת הכנסה':'✏️ עריכת הוצאה'):(isInc?'➕ הוספת הכנסה':'➕ הוספת הוצאה');
-    body='<div class="fg"><label class="fl">שם</label><input class="fi" id="fN" placeholder="'+(isInc?'משכורת...':'חשמל...')+'" value="'+(item&&item.name||'')+'"></div>'
+    body='<div class="fg"><label class="fl">שם</label><input class="fi" id="fN" placeholder="'+(isInc?'משכורת...':'חשמל...')+'" value="'+esc(item&&item.name||'')+'"></div>'
       +'<div class="fr"><div class="fg"><label class="fl">סכום ₪</label><input class="fi" id="fA" type="number" inputmode="decimal" placeholder="0" value="'+(item&&item.amount||'')+'"></div>'
       +(isInc?'':'<div class="fg"><label class="fl">סוג</label><select class="fi" id="fT"><option>הוראת קבע</option><option>קניות</option><option>ביטוח</option><option>אחר</option></select></div>')+'</div>'
       +'<div class="fr"><div class="fg"><label class="fl">תאריך התחלה</label><input class="fi" id="fSD" type="month" value="'+(item&&item.startDate||todayStr)+'"></div>'
       +'<div class="fg"><label class="fl">חד-פעמי? (חודשים)</label><input class="fi" id="fMo" type="number" inputmode="numeric" placeholder="0=קבוע" value="'+(item&&item.months||0)+'"></div></div>'
-      +'<div class="fg"><label class="fl">הערה</label><input class="fi" id="fNt" placeholder="" value="'+(item&&item.note||'')+'"></div>'+actionRow;
+      +'<div class="fg"><label class="fl">הערה</label><input class="fi" id="fNt" placeholder="" value="'+esc(item&&item.note||'')+'"></div>'+actionRow;
   } else if(type==='loan'){
     moTitle.textContent=isEdit?'✏️ עריכת הלוואה':'➕ הוספת הלוואה';
-    body='<div class="fg"><label class="fl">שם ההלוואה</label><input class="fi" id="fN" placeholder="הלוואת בנק..." value="'+(item&&item.name||'')+'"></div>'
+    body='<div class="fg"><label class="fl">שם ההלוואה</label><input class="fi" id="fN" placeholder="הלוואת בנק..." value="'+esc(item&&item.name||'')+'"></div>'
       +'<div class="fr"><div class="fg"><label class="fl">סכום מקורי ₪</label><input class="fi" id="fTot" type="number" inputmode="decimal" placeholder="0" value="'+(item&&item.totalAmount||'')+'" oninput="calcLoanPayment()"></div>'
       +'<div class="fg"><label class="fl">ריבית שנתית %</label><input class="fi" id="fInt" type="number" inputmode="decimal" placeholder="0" value="'+(item&&item.interest||'')+'" oninput="calcLoanPayment()"></div></div>'
       +'<div class="fr"><div class="fg"><label class="fl">מספר תשלומים</label><input class="fi" id="fRem" type="number" inputmode="numeric" placeholder="0" value="'+(item&&item.remainingPayments||'')+'" oninput="calcLoanPayment()"></div>'
-      +'<div class="fg"><label class="fl">גוף מלווה</label><input class="fi" id="fLen" placeholder="בנק / אשראי" value="'+(item&&item.lender||'')+'"></div></div>'
+      +'<div class="fg"><label class="fl">גוף מלווה</label><input class="fi" id="fLen" placeholder="בנק / אשראי" value="'+esc(item&&item.lender||'')+'"></div></div>'
       +'<div style="background:var(--b50);border-radius:10px;padding:12px 14px;margin-bottom:12px;border:1px solid var(--b100)">'
       +'<div style="font-size:11px;color:var(--b700);font-weight:600;margin-bottom:6px">🔢 חישוב אוטומטי</div>'
       +'<div style="display:flex;justify-content:space-between">'
@@ -1351,21 +1385,21 @@ function openModal(type,id){
         return '<option value="'+y+'" '+sel+'>'+y+'</option>';
       }).join('')+'</select>'
       +'</div></div>'
-      +'<div class="fg"><label class="fl">הערות</label><input class="fi" id="fNt" placeholder="" value="'+(item&&item.note||'')+'"></div></div>'
+      +'<div class="fg"><label class="fl">הערות</label><input class="fi" id="fNt" placeholder="" value="'+esc(item&&item.note||'')+'"></div></div>'
       +actionRow;
   } else if(type==='sav'){
     moTitle.textContent=isEdit?'✏️ עריכת חסכון':'➕ הוספת חסכון';
-    body='<div class="fg"><label class="fl">שם</label><input class="fi" id="fN" value="'+(item&&item.name||'')+'"></div>'
+    body='<div class="fg"><label class="fl">שם</label><input class="fi" id="fN" value="'+esc(item&&item.name||'')+'"></div>'
       +'<div class="fr"><div class="fg"><label class="fl">סכום ₪</label><input class="fi" id="fA" type="number" inputmode="decimal" placeholder="0" value="'+(item&&item.amount||'')+'"></div>'
       +'<div class="fg"><label class="fl">תאריך</label><input class="fi" id="fSD" type="month" value="'+(item&&item.date||todayStr)+'"></div></div>'+actionRow;
   } else if(type==='pension'){
     moTitle.textContent=isEdit?'✏️ עריכת פנסיה':'➕ הוספת פנסיה';
-    body='<div class="fg"><label class="fl">שם</label><input class="fi" id="fN" value="'+(item&&item.name||'')+'"></div>'
+    body='<div class="fg"><label class="fl">שם</label><input class="fi" id="fN" value="'+esc(item&&item.name||'')+'"></div>'
       +'<div class="fr"><div class="fg"><label class="fl">תשלום חודשי ₪</label><input class="fi" id="fMon" type="number" inputmode="decimal" placeholder="0" value="'+(item&&item.monthly||'')+'"></div>'
       +'<div class="fg"><label class="fl">שינוי %</label><input class="fi" id="fChg" type="number" placeholder="0" value="'+(item&&item.change||'')+'"></div></div>'+actionRow;
   } else if(type==='goal'){
     moTitle.textContent=isEdit?'✏️ עריכת יעד':'➕ הוספת יעד';
-    body='<div class="fg"><label class="fl">שם היעד</label><input class="fi" id="fN" value="'+(item&&item.name||'')+'"></div>'
+    body='<div class="fg"><label class="fl">שם היעד</label><input class="fi" id="fN" value="'+esc(item&&item.name||'')+'"></div>'
       +'<div class="fr"><div class="fg"><label class="fl">סכום יעד ₪</label><input class="fi" id="fTarget" type="number" inputmode="decimal" placeholder="0" value="'+(item&&item.target||'')+'"></div>'
       +'<div class="fg"><label class="fl">כבר חסכת ₪</label><input class="fi" id="fSaved" type="number" inputmode="decimal" placeholder="0" value="'+(item&&item.saved||'')+'"></div></div>'+actionRow;
   }
@@ -1537,7 +1571,7 @@ function showAlerts(){
     +alerts.map(function(a){
       return '<div class="alert-item '+(a.type==='ok'?'ok':a.type==='warn'?'warn':'')+'">'
         +'<div class="alert-icon">'+a.icon+'</div>'
-        +'<div class="alert-text"><div class="alert-title" style="color:'+(clrMap[a.type]||'inherit')+'">'+a.title+'</div>'
+        +'<div class="alert-text"><div class="alert-title" style="color:'+(clrMap[a.type]||'inherit')+'">'+esc(a.title)+'</div>'
         +'<div>'+a.text+'</div></div></div>';
     }).join('')+'</div>';
   ov.addEventListener('click',function(e){if(e.target===ov)closeAlerts();});
@@ -1721,28 +1755,71 @@ function learnAnswer(question,answer){
 }
 function showLearnPrompt(question,el){
   pendingLearn=question;
-  el.innerHTML+='<div class="ai-m ai" id="learnPrompt" style="border:1.5px dashed var(--a600);background:var(--a100)">'
-    +'🤔 <b>לא ידעתי לענות על זה.</b><br>מה התשובה הנכונה? אלמד ואזכור 🧠<br><br>'
-    +'<div style="display:flex;gap:8px;margin-top:6px">'
-    +'<input id="learnInput" class="ai-in" style="flex:1;border-radius:8px;font-size:13px" placeholder="הכנס תשובה...">'
-    +'<button onclick="submitLearn()" style="background:var(--a600);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">למד ✓</button>'
-    +'</div>'
-    +'<button onclick="skipLearn()" style="background:none;border:none;color:var(--g400);font-size:11px;cursor:pointer;margin-top:6px">דלג</button>'
-    +'</div>';
+  var uv=detectUnknownVerb(question);
+  var GL={add:'➕ הוספה',update:'✏️ עדכון',delete:'🗑️ מחיקה',show:'👁️ הצגה',nav:'🧭 ניווט',find:'🔍 חיפוש',other:'💬 תשובה חופשית'};
+  var btns=Object.keys(GL).map(function(g){
+    var act=g==='other'?'submitLearnFree()':'submitSynonym("'+g+'")';
+    return '<button onclick="'+act+'" style="background:var(--g50);border:1px solid var(--g200);border-radius:8px;padding:7px 9px;cursor:pointer;font-size:12px;font-family:Heebo,sans-serif;margin:2px">'+GL[g]+'</button>';
+  }).join('');
+  if(uv){
+    el.innerHTML+='<div class="ai-m ai" id="learnPrompt" style="border:1.5px dashed var(--b400);background:var(--b50)">'
+      +'🤔 המילה <b>"'+uv+'"</b> לא מוכרת לי כפקודה.<br>'
+      +'לאיזו פעולה לקשר אותה? אזכור לתמיד 🧠<br><br>'
+      +'<div style="display:flex;flex-wrap:wrap;margin-top:4px">'+btns+'</div>'
+      +'<div id="learnFreeDiv" style="display:none;margin-top:8px">'
+        +'<input id="learnInput" class="ai-in" style="width:100%;box-sizing:border-box;border-radius:8px;font-size:13px" placeholder="הכנס תשובה חופשית...">'
+        +'<button onclick="submitLearn()" style="background:var(--a600);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;margin-top:6px;width:100%">למד ✓</button>'
+      +'</div>'
+      +'<button onclick="skipLearn()" style="background:none;border:none;color:var(--g400);font-size:11px;cursor:pointer;margin-top:8px;display:block">דלג</button>'
+      +'</div>';
+  } else {
+    el.innerHTML+='<div class="ai-m ai" id="learnPrompt" style="border:1.5px dashed var(--a600);background:var(--a100)">'
+      +'🤔 <b>לא ידעתי לענות על זה.</b><br>מה התשובה הנכונה? אלמד ואזכור 🧠<br><br>'
+      +'<div style="display:flex;gap:8px;margin-top:6px">'
+      +'<input id="learnInput" class="ai-in" style="flex:1;border-radius:8px;font-size:13px" placeholder="הכנס תשובה...">'
+      +'<button onclick="submitLearn()" style="background:var(--a600);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">למד ✓</button>'
+      +'</div>'
+      +'<button onclick="skipLearn()" style="background:none;border:none;color:var(--g400);font-size:11px;cursor:pointer;margin-top:6px">דלג</button>'
+      +'</div>';
+  }
   el.scrollTop=el.scrollHeight;
   setTimeout(function(){var inp=document.getElementById('learnInput');if(inp)inp.focus();},200);
 }
+function submitSynonym(group){
+ try{
+  var q=pendingLearn;
+  if(!q){skipLearn();return;}
+  if(group==='other'){var fd=document.getElementById('learnFreeDiv');if(fd)fd.style.display='flex';return;}
+  var verb=q.toLowerCase().trim().split(/\s+/)[0];
+  addSynonym(verb,group);
+  pendingLearn=null;
+  var p=document.getElementById('learnPrompt');
+  var GL2={add:'הוספה',update:'עדכון',delete:'מחיקה',show:'הצגה',nav:'ניווט',find:'חיפוש'};
+  if(p){p.style.border='1.5px solid var(--gr600)';p.style.background='var(--gr100)';p.innerHTML='✅ <b>קישרתי!</b> "<b>'+verb+'</b>" → '+GL2[group]+' 🧠<br><span style="font-size:11px;color:var(--g500)">מנסה שוב...</span>';}
+  setTimeout(function(){try{if(chatHistory.length&&chatHistory[chatHistory.length-1].role==='me') askQ(q);}catch(e){}},1200);
+ }catch(e){}
+}
+function submitLearnFree(){
+ try{
+  var fd=document.getElementById('learnFreeDiv');
+  if(fd) fd.style.display='flex';
+ }catch(e){}
+}
 function submitLearn(){
+ try{
   var inp=document.getElementById('learnInput');
   if(!inp||!inp.value.trim()||!pendingLearn)return;
   learnAnswer(pendingLearn,inp.value.trim());pendingLearn=null;
   var p=document.getElementById('learnPrompt');
   if(p){p.style.border='1.5px solid var(--gr600)';p.style.background='var(--gr100)';p.innerHTML='✅ <b>למדתי!</b> אזכור זאת בפעם הבאה 🧠';}
+ }catch(e){}
 }
-function skipLearn(){pendingLearn=null;var p=document.getElementById('learnPrompt');if(p)p.remove();}
+function skipLearn(){try{pendingLearn=null;var p=document.getElementById('learnPrompt');if(p)p.remove();}catch(e){}}
 function markHelpful(btn,helpful){
+ try{
   if(!helpful){var msgs=document.querySelectorAll('.ai-m.me');var lq=msgs.length?msgs[msgs.length-1].textContent:'';if(lq)showLearnPrompt(lq,document.getElementById('aiMsgs'));}
   else{var p=btn.closest('div[style*=flex]');if(p)p.innerHTML='<span style="font-size:11px;color:var(--gr600)">✅ תודה!</span>';}
+ }catch(e){}
 }
 function showKBManager(){
   var ov=document.createElement('div');
@@ -1812,16 +1889,22 @@ function handlePendingAnswer(q){
 }
 function askQ(q){
   var el=document.getElementById('aiMsgs');
-  aiTurns++;if(aiTurns>1)el.innerHTML='';
-  el.innerHTML+='<div class="ai-m me">'+q+'</div>';
+  if(!el)return;
+  aiTurns++;
+  chatHistory.push({role:'me',text:q});
+  if(chatHistory.length>40) chatHistory.shift(); // שמור עד 40 הודעות
+  el.innerHTML='';
+  chatHistory.forEach(function(h){
+    el.innerHTML+='<div class="ai-m '+h.role+'" '+(h.role==='ai'?'style="border-right:3px solid var(--b200)"':'')+'>'+h.text+'</div>';
+  });
   try{trackTopic(q.toLowerCase());}catch(e){}
   try{extractFacts(q);}catch(e){}
   var actionResult=null;
   try{actionResult=actionAI(q);}catch(e){}
-  if(actionResult){el.innerHTML+='<div class="ai-m ai" style="border-right:3px solid var(--gr600)">'+actionResult+'</div>';el.scrollTop=el.scrollHeight;return;}
+  if(actionResult){chatHistory.push({role:'ai',text:actionResult});el.innerHTML+='<div class="ai-m ai" style="border-right:3px solid var(--gr600)">'+actionResult+'</div>';el.scrollTop=el.scrollHeight;return;}
   var personalAnswer=null;
   try{personalAnswer=personalAI(q);}catch(e){}
-  if(personalAnswer){el.innerHTML+='<div class="ai-m ai">'+personalAnswer+'</div>';el.scrollTop=el.scrollHeight;return;}
+  if(personalAnswer){chatHistory.push({role:'ai',text:personalAnswer});el.innerHTML+='<div class="ai-m ai">'+personalAnswer+'</div>';el.scrollTop=el.scrollHeight;return;}
   var kbResult=null;
   try{kbResult=searchKB(q);}catch(e){}
   if(kbResult){
@@ -1840,6 +1923,7 @@ function askQ(q){
   try{builtIn=localAI(q);}catch(e){}
   var notKnown=builtIn.startsWith('🤔');
   var ctx4=buildPersonalContext();var prefix4=ctx4.length?'<div style="font-size:11px;color:var(--b600);margin-bottom:6px">'+ctx4.join(' · ')+'</div>':'';
+  chatHistory.push({role:'ai',text:prefix4+builtIn});
   el.innerHTML+='<div class="ai-m ai">'+prefix4+builtIn+'</div>';
   el.scrollTop=el.scrollHeight;
   if(notKnown)showLearnPrompt(q,el);
@@ -1859,7 +1943,9 @@ function toggleDark(){document.body.classList.toggle('dark');var btn=document.ge
 function initExtras(){
   try{applyDark();}catch(e){}
   try{autoDark();}catch(e){}
-  try{loadKB();}catch(e){}
+  try{loadKB();
+  loadSynonyms();
+  rebuildVerbPatterns();}catch(e){}
   try{loadProfile();}catch(e){}
   try{renderGoals();}catch(e){}
   try{renderLog();}catch(e){}
@@ -1879,12 +1965,11 @@ function initExtras(){
 // ══════════════════════════════════════
 // 📱 PWA + GLOBAL ERROR + INIT
 // ══════════════════════════════════════
-window.onerror=function(msg,src,line,col,err){
-  var div=document.createElement('div');
-  div.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#c00;color:#fff;padding:8px;font-size:11px;font-family:monospace;word-break:break-all';
-  div.textContent='ERR L'+line+': '+msg+(err?' | '+err.message:'');
-  document.body.appendChild(div);return false;
-};
+// (duplicate window.onerror removed — using the improved handler defined earlier in the file)
+function esc(s){
+  if(s===null||s===undefined)return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
 var deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;var btn=document.getElementById('pwaInstallBtn');if(btn)btn.style.display='block';});
 function installPWA(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.then(function(){deferredPrompt=null;var btn=document.getElementById('pwaInstallBtn');if(btn)btn.style.display='none';});}
@@ -1910,7 +1995,7 @@ function renderGoals(){
     var pct=g.target>0?Math.min(100,Math.round(g.saved/g.target*100)):0;
     var done=pct>=100;
     return '<div class="goal-item">'
-      +'<div class="goal-header"><div class="goal-name">'+(done?'✅ ':'')+g.name+'</div>'
+      +'<div class="goal-header"><div class="goal-name">'+(done?'✅ ':'')+esc(g.name)+'</div>'
       +'<div class="ir-actions">'
       +'<button class="ic-btn edit" data-t="goal" data-id="'+g.id+'" onclick="openModal(this.dataset.t,+this.dataset.id)">✏️</button>'
       +'<button class="ic-btn del" data-t="goal" data-id="'+g.id+'" onclick="delItem(this.dataset.t,+this.dataset.id)">🗑</button>'
@@ -1931,7 +2016,7 @@ function renderLog(){
     var timeStr=d.toLocaleDateString('he-IL')+' '+d.toLocaleTimeString('he-IL',{hour:'2-digit',minute:'2-digit'});
     return '<div class="log-item">'
       +'<div class="log-icon">'+icon+'</div>'
-      +'<div class="log-main"><div class="log-name">'+item.name+'</div><div class="log-time">'+timeStr+'</div></div>'
+      +'<div class="log-main"><div class="log-name">'+esc(item.name)+'</div><div class="log-time">'+timeStr+'</div></div>'
       +'<div class="log-amt '+(item.action==='del'?'neg':'pos')+'">'+fmt(item.amount)+'</div>'
       +'</div>';
   }).join('');
@@ -1940,12 +2025,8 @@ function renderLog(){
 // ══════════════════════════════════════
 // ⚡ ACTION AI + PERSONAL AI
 // ══════════════════════════════════════
-var V_ADD='(?:רשום|תרשום|הוסף|תוסיף|להוסיף|נוסיף|הכנס|תכניס|צור|תיצור)';
-var V_UPDATE='(?:עדכן|תעדכן|לעדכן|שנה|תשנה|לשנות|תחליף|החלף|להחליף)';
-var V_DELETE='(?:מחק|תמחק|תמחוק|למחוק|הסר|תסיר|להסיר|בטל|תבטל|תגרע|גרע|הוצא)';
-var V_SHOW='(?:הצג|תציג|להציג|תראה|הראה|תן לי|בדוק|תבדוק)';
-var V_NAV='(?:עבור|תעבור|לך|תלך|פתח|תפתח|לפתוח)';
-var V_FIND='(?:מצא|תמצא|למצוא|חפש|תחפש|איתור)';
+// V_ADD/V_UPDATE etc: use global vars (updated by rebuildVerbPatterns)
+// do NOT re-declare here with var — that would shadow the globals
 
 function actionAI(q){
   var ql=q.toLowerCase().trim();
@@ -1963,8 +2044,8 @@ function actionAI(q){
   if(new RegExp(V_ADD+'\\s*(?:לי\\s*)?(?:הוצאה|תשלום|חיוב)').test(ql)){
     var amt=parseAmount(ql);
     if(amt>0){
-      var nm=ql.match(/(?:על|עבור|בשם)\s*([\u05d0-\u05ea\w][\u05d0-\u05ea\w\s]{1,20}?)(?:\s+ב|\d|$)/);
-      var nmFB=ql.match(/(?:הוצאה|תשלום|חיוב)\s+(?:חד\s*פעמית?\s+)?([\u05d0-\u05eaA-Za-z][\u05d0-\u05eaA-Za-z\s]{1,20}?)(?:\s+ב|\s*(?:₪|ש"ח|שח)?\s*\d|$)/);
+      var nm=ql.match(/(?:על|עבור|בשם)\s*([\u05d0-\u05ea\w][\u05d0-\u05ea\w\s]{1,20}?)(?:\s+ב|\s*(?:₪|ש"ח|שח)?\s*\d|$)/);
+      var nmFB=ql.match(/(?:הוצאה|תשלום|חיוב)\s*(?:חד\s*פעמית?\s*)?([\u05d0-\u05eaA-Za-z][\u05d0-\u05eaA-Za-z\s]{1,20}?)(?:\s+ב|\s*(?:₪|ש"ח|שח)?\s*\d|$)/);
       var expName=nm?nm[1].trim():(nmFB?nmFB[1].trim():'הוצאה חדשה');
       var isOne=/חד\s*פעמי|פעם\s+אחת/.test(ql);
       var sd=parseMonth(ql);
@@ -1981,7 +2062,7 @@ function actionAI(q){
     var amt2=parseAmount(ql);
     if(amt2>0){
       var nm2=ql.match(/(?:מ|ממקור|בשם)\s+([\u05d0-\u05ea\w\s]{2,20})/);
-      var nm2FB=ql.match(/(?:הכנסה)\s+([\u05d0-\u05eaA-Za-z][\u05d0-\u05eaA-Za-z\s]{1,20}?)(?:\s+ב|\s*(?:₪|ש"ח|שח)?\s*\d|$)/);
+      var nm2FB=ql.match(/(?:הכנסה)\s*([\u05d0-\u05eaA-Za-z][\u05d0-\u05eaA-Za-z\s]{1,20}?)(?:\s+ב|\s*(?:₪|ש"ח|שח)?\s*\d|$)/);
       var incName=nm2?nm2[1].trim():(nm2FB?nm2FB[1].trim():(ql.includes('משכורת')||ql.includes('שכר')?'משכורת':'הכנסה'));
       incomes.push({id:Date.now(),name:incName,amount:amt2,freq:'חודשי'});
       syncAll();addLog('add',incName,amt2,'inc');
@@ -1989,19 +2070,22 @@ function actionAI(q){
     }
   }
   // ── עדכון ──
+  // ── עדכן כמות תשלומים של הלוואה (לפני updM הכללי) ──
+  var lpM=ql.match(/(?:עדכן|שנה)\s+(?:תשלומים|כמות\s+תשלומים)\s+(?:של\s+)?([\u05d0-\u05eaA-Za-z\s]{2,20}?)\s+ל[-]?(\d+)/);
+  if(lpM){var lpN=lpM[1].trim(),lpNum=parseInt(lpM[2]);var lpL=loans.find(function(l){return l.name.includes(lpN)||lpN.includes(l.name.split(' ')[0]);});if(lpL&&lpNum>0){var lpO=lpL.remainingPayments;lpL.remainingPayments=lpNum;syncAll();return '✅ <b>עדכנתי תשלומים:</b> '+lpL.name+': '+lpO+' → <b>'+lpNum+'</b>';}}
   var updM=new RegExp(V_UPDATE+'\\s+(?:את\\s+)?(.{2,20}?)\\s+(?:ל|ל-|ב|ב-)(\\d[\\d,]*)').exec(ql);
   if(updM){
     var sName=updM[1].trim(),nAmt=parseFloat(updM[2].replace(/,/g,''));
     var fe=expenses.find(function(e){return e.name.includes(sName)||sName.includes(e.name.split(' ')[0]);});
-    if(fe&&nAmt>0){var oa=fe.amount;fe.amount=nAmt;syncAll();addLog('upd',fe.name,nAmt,'exp');return '✅ <b>עדכנתי!</b><br><b>'+fe.name+'</b>: '+fmt(oa)+' → <b>'+fmt(nAmt)+'</b>';}
+    if(fe&&nAmt>0){var oa=fe.amount;fe.amount=nAmt;syncAll();addLog('upd',fe.name,nAmt,'exp');return '✅ <b>עדכנתי!</b><br><b>'+esc(fe.name)+'</b>: '+fmt(oa)+' → <b>'+fmt(nAmt)+'</b>';}
     var fi=incomes.find(function(i){return i.name.includes(sName)||sName.includes(i.name.split(' ')[0]);});
-    if(fi&&nAmt>0){var oa2=fi.amount;fi.amount=nAmt;syncAll();addLog('upd',fi.name,nAmt,'inc');return '✅ <b>עדכנתי הכנסה!</b><br><b>'+fi.name+'</b>: '+fmt(oa2)+' → <b>'+fmt(nAmt)+'</b>';}
+    if(fi&&nAmt>0){var oa2=fi.amount;fi.amount=nAmt;syncAll();addLog('upd',fi.name,nAmt,'inc');return '✅ <b>עדכנתי הכנסה!</b><br><b>'+esc(fi.name)+'</b>: '+fmt(oa2)+' → <b>'+fmt(nAmt)+'</b>';}
     var fl=loans.find(function(l){return l.name.includes(sName)||sName.includes(l.name.split(' ')[0]);});
-    if(fl&&nAmt>0){var oa3=fl.monthlyPayment;fl.monthlyPayment=nAmt;syncAll();addLog('upd',fl.name,nAmt,'loan');return '✅ <b>עדכנתי הלוואה!</b><br><b>'+fl.name+'</b> — תשלום חודשי: '+fmt(oa3)+' → <b>'+fmt(nAmt)+'</b>';}
+    if(fl&&nAmt>0){var oa3=fl.monthlyPayment;fl.monthlyPayment=nAmt;syncAll();addLog('upd',fl.name,nAmt,'loan');return '✅ <b>עדכנתי הלוואה!</b><br><b>'+esc(fl.name)+'</b> — תשלום חודשי: '+fmt(oa3)+' → <b>'+fmt(nAmt)+'</b>';}
     var fs=savings.find(function(s){return s.name.includes(sName)||sName.includes(s.name.split(' ')[0]);});
-    if(fs&&nAmt>0){var oa4=fs.amount;fs.amount=nAmt;syncAll();addLog('upd',fs.name,nAmt,'sav');return '✅ <b>עדכנתי חיסכון!</b><br><b>'+fs.name+'</b>: '+fmt(oa4)+' → <b>'+fmt(nAmt)+'</b>';}
+    if(fs&&nAmt>0){var oa4=fs.amount;fs.amount=nAmt;syncAll();addLog('upd',fs.name,nAmt,'sav');return '✅ <b>עדכנתי חיסכון!</b><br><b>'+esc(fs.name)+'</b>: '+fmt(oa4)+' → <b>'+fmt(nAmt)+'</b>';}
     var fg=goals.find(function(g){return g.name.includes(sName)||sName.includes(g.name.split(' ')[0]);});
-    if(fg&&nAmt>0){var oa5=fg.saved;fg.saved=nAmt;saveData();renderGoals();return '✅ <b>עדכנתי יעד!</b><br><b>'+fg.name+'</b> — נחסך עד כה: '+fmt(oa5)+' → <b>'+fmt(nAmt)+'</b>';}
+    if(fg&&nAmt>0){var oa5=fg.saved;fg.saved=nAmt;saveData();renderGoals();return '✅ <b>עדכנתי יעד!</b><br><b>'+esc(fg.name)+'</b> — נחסך עד כה: '+fmt(oa5)+' → <b>'+fmt(nAmt)+'</b>';}
   }
   // ── מחיקה ──
   var delM=new RegExp(V_DELETE+'\\s+(?:את\\s+)?(?:הוצאה\\s+)?(.{2,25}?)(?:\\s*$)').exec(ql);
@@ -2058,10 +2142,10 @@ function actionAI(q){
   var findM=new RegExp(V_FIND+'\\s*(?:לי|עבורי)?\\s+(.{2,25})').exec(ql);
   if(findM){
     var st=findM[1].trim(),res=[];
-    expenses.forEach(function(e){if(e.name.includes(st))res.push('• הוצאה: <b>'+e.name+'</b> — '+fmt(e.amount));});
-    incomes.forEach(function(i){if(i.name.includes(st))res.push('• הכנסה: <b>'+i.name+'</b> — '+fmt(i.amount));});
-    loans.forEach(function(l){if(l.name.includes(st))res.push('• הלוואה: <b>'+l.name+'</b> — '+fmt(l.monthlyPayment)+'/חודש');});
-    savings.forEach(function(s){if(s.name.includes(st))res.push('• חסכון: <b>'+s.name+'</b> — '+fmt(s.amount));});
+    expenses.forEach(function(e){if(e.name.includes(st))res.push('• הוצאה: <b>'+esc(e.name)+'</b> — '+fmt(e.amount));});
+    incomes.forEach(function(i){if(i.name.includes(st))res.push('• הכנסה: <b>'+esc(i.name)+'</b> — '+fmt(i.amount));});
+    loans.forEach(function(l){if(l.name.includes(st))res.push('• הלוואה: <b>'+esc(l.name)+'</b> — '+fmt(l.monthlyPayment)+'/חודש');});
+    savings.forEach(function(s){if(s.name.includes(st))res.push('• חסכון: <b>'+esc(s.name)+'</b> — '+fmt(s.amount));});
     if(!res.length)return '🔍 לא מצאתי רשומה עם "'+st+'".';
     return '🔍 <b>תוצאות עבור "'+st+'":</b><br><br>'+res.join('<br>');
   }
@@ -2069,26 +2153,26 @@ function actionAI(q){
   if(new RegExp(V_SHOW+'\\s*(?:לי\\s*)?(?:את\\s*)?(?:כל\\s*)?(?:ה)?הוצאות').test(ql)){
     var ae=expenses.filter(function(e){return expenseActiveAt(e,monOffset);});
     if(!ae.length)return 'אין הוצאות פעילות כרגע.';
-    return '📋 <b>הוצאות:</b><br><br>'+ae.map(function(e){return '• '+e.name+': <b>'+fmt(e.amount)+'</b>';}).join('<br>')+'<br><br>סה"כ: <b>'+fmt(ae.reduce(function(s,e){return s+e.amount;},0))+'</b>';
+    return '📋 <b>הוצאות:</b><br><br>'+ae.map(function(e){return '• '+esc(e.name)+': <b>'+fmt(e.amount)+'</b>';}).join('<br>')+'<br><br>סה"כ: <b>'+fmt(ae.reduce(function(s,e){return s+e.amount;},0))+'</b>';
   }
   if(new RegExp(V_SHOW+'\\s*(?:לי\\s*)?(?:כל\\s*)?(?:ה)?הכנסות').test(ql)){
     if(!incomes.length)return 'אין הכנסות.';
-    return '💰 <b>הכנסות:</b><br><br>'+incomes.map(function(i){return '• '+i.name+': <b>'+fmt(i.amount)+'</b>/חודש';}).join('<br>');
+    return '💰 <b>הכנסות:</b><br><br>'+incomes.map(function(i){return '• '+esc(i.name)+': <b>'+fmt(i.amount)+'</b>/חודש';}).join('<br>');
   }
   if(new RegExp(V_SHOW+'\\s*(?:לי\\s*)?(?:כל\\s*)?(?:ה)?(?:הלוואות|חובות)').test(ql)){
     if(!loans.length)return 'אין הלוואות.';
     setTimeout(function(){showOverlay('loan');},800);
-    return '💳 <b>הלוואות:</b><br><br>'+loans.map(function(l){return '• '+l.name+': <b>'+fmt(l.monthlyPayment)+'</b>/חודש ('+l.remainingPayments+' תשלומים)';}).join('<br>');
+    return '💳 <b>הלוואות:</b><br><br>'+loans.map(function(l){return '• '+esc(l.name)+': <b>'+fmt(l.monthlyPayment)+'</b>/חודש ('+l.remainingPayments+' תשלומים)';}).join('<br>');
   }
   if(new RegExp(V_SHOW+'\\s*(?:לי\\s*)?(?:כל\\s*)?(?:ה)?(?:חסכונות|חיסכון)').test(ql)){
     if(!savings.length)return 'אין חסכונות.';
     setTimeout(function(){showOverlay('sav');},800);
-    return '🏦 <b>חסכונות:</b><br><br>'+savings.map(function(s){return '• '+s.name+': <b>'+fmt(s.amount)+'</b>';}).join('<br>')+'<br><br>סה"כ: <b>'+fmt(savings.reduce(function(s,sv){return s+sv.amount;},0))+'</b>';
+    return '🏦 <b>חסכונות:</b><br><br>'+savings.map(function(s){return '• '+esc(s.name)+': <b>'+fmt(s.amount)+'</b>';}).join('<br>')+'<br><br>סה"כ: <b>'+fmt(savings.reduce(function(s,sv){return s+sv.amount;},0))+'</b>';
   }
   if(new RegExp(V_SHOW+'\\s*(?:לי\\s*)?(?:כל\\s*)?(?:ה)?(?:יעדים|מטרות)').test(ql)){
     if(!goals.length)return 'אין יעדים.';
     setTimeout(function(){showOverlay('goals');},800);
-    return '🎯 <b>יעדים:</b><br><br>'+goals.map(function(g){return '• '+g.name+': '+fmt(g.saved)+' / <b>'+fmt(g.target)+'</b>';}).join('<br>');
+    return '🎯 <b>יעדים:</b><br><br>'+goals.map(function(g){return '• '+esc(g.name)+': '+fmt(g.saved)+' / <b>'+fmt(g.target)+'</b>';}).join('<br>');
   }
   // ── הוספה גנרית: "הוסף X 200" בלי מילת סוג מפורשת -> נופל להוצאה כברירת מחדל ──
   var genM=new RegExp(V_ADD+'\\s*(?:לי\\s*)?([\u05d0-\u05eaA-Za-z][\u05d0-\u05eaA-Za-z\\s]{1,20}?)\\s*(?:₪|ש"ח|שח)?\\s*\\d').exec(ql);
@@ -2104,6 +2188,89 @@ function actionAI(q){
       return '✅ <b>הנחתי שזו הוצאה והוספתי:</b><br>📌 <b>'+genName+'</b> — <b>'+fmt(genAmt)+'</b>'+(genIsOne?' · חד פעמי':' · חודשי')+'<br>📅 מ-'+genDate;
     }
   }
+  // ── נעילה ──
+  if(/(?:נעל|לנעול|lock|התנתק|logout)/.test(ql)){
+    setTimeout(function(){logoutApp();},800);
+    return '🔐 <b>נועל את האפליקציה...</b>';
+  }
+  // ── עזרה ──
+  if(/^עזרה$|^פקודות$|מה אתה יכול|מה אפשר לבקש|רשימת פקודות/.test(ql)){
+    return '🤖 <b>רשימת פקודות:</b><br><br><b>📊 מידע</b><br>• תן לי סיכום<br>• מה הבריאות הפיננסית שלי?<br>• כמה אני מוציא?<br>• הצג הוצאות / הכנסות / הלוואות / חסכונות / יעדים<br><br><b>➕ הוספה</b><br>• הוסף הוצאה [שם] [סכום]<br>• הוסף הכנסה [שם] [סכום]<br>• הוסף הלוואה עבור [שם] [סכום] ב-[ריבית]% [תשלומים] תשלומים<br>• הוסף חיסכון [שם] [סכום]<br>• הוסף יעד [שם] [סכום]<br><br><b>✏️ עדכון ומחיקה</b><br>• עדכן [שם] ל-[סכום]<br>• מחק [שם]<br><br><b>🧭 ניווט</b><br>• לך להוצאות / הלוואות / חסכונות / גרפים / יעדים / יומן / גיבוי<br><br><b>🌙 הגדרות</b><br>• מצב לילה / בהיר<br>• נעל את האפליקציה<br>• ייצא גיבוי<br><br><b>💬 שיחה</b><br>• מה שמי / קוראים לי [שם]<br>• מה אתה יודע עליי<br>• כמה פעמים נכנסתי<br><br><i style="color:var(--g400)">אפשר גם לדבר בקול! לחץ על 🎤</i>';
+  }
+  // ── מצב לילה/בהיר ──
+  if(/מצב לילה|darkmode|dark mode/.test(ql)||(/כהה|חשוך/.test(ql)&&!/לא/.test(ql))){
+    if(!document.body.classList.contains('dark'))toggleDark();
+    return '🌙 <b>מצב לילה פעיל.</b>';
+  }
+  if(/מצב בהיר|light mode|בהיר/.test(ql)){
+    if(document.body.classList.contains('dark'))toggleDark();
+    return '☀️ <b>מצב בהיר פעיל.</b>';
+  }
+  // ── ייצוא גיבוי ──
+  if(/(?:ייצא|יצא|גבה|שמור)\s*(?:גיבוי|backup|נתונים|קובץ)/.test(ql)){
+    setTimeout(function(){exportJSON();},400);
+    return '💾 <b>מייצא גיבוי...</b>';
+  }
+  // ── בריאות פיננסית ──
+  if(/בריאות|ציון|score/.test(ql)){
+    var hs=calcHealthScore();
+    return '💊 <b>בריאות פיננסית:</b> '+hs.score+'/100<br>'+(hs.tips||[]).slice(0,3).map(function(t){return '• '+t;}).join('<br>');
+  }
+  // ── אופטימיסטי: ניחוש חודש ──
+  if(/(?:איזה|באיזה)\s*חודש/.test(ql)){
+    return '📅 אנחנו ב<b>'+MONTHS[curMon]+'</b> '+curYear+'.';
+  }
+  // ── כמה מוציא / יתרה ──
+  if(/כמה\s*אני\s*מוציא|סך\s*הוצאות/.test(ql)){
+    var cc=ctx();
+    return '📊 סך הוצאות חודשיות: <b style="color:var(--r600)">'+fmt(cc.totalExp)+'</b><br>מזה הלוואות: <b>'+fmt(cc.lMon)+'</b>';
+  }
+  if(/כמה\s*אני\s*מרוויח|סך\s*הכנסות/.test(ql)){
+    var cc2=ctx();
+    return '💰 סך הכנסות חודשיות: <b style="color:var(--gr600)">'+fmt(cc2.inc)+'</b>';
+  }
+  if(/כמה\s*נשאר|יתרה|מאזן/.test(ql)){
+    var cc3=ctx();
+    return (cc3.balance>=0?'✅':'⚠️')+' <b>יתרה חודשית: '+(cc3.balance>=0?'<span style="color:var(--gr600)">+':'<span style="color:var(--r600)">')+fmt(Math.abs(cc3.balance))+'</span></b>';
+  }
+  // ── סה"כ חוב ──
+  if(/כמה\s*חוב|סך\s*(?:כל\s*)?ה?חובות|חוב\s*כולל/.test(ql)){
+    var cc4=ctx();
+    return '💳 סך חוב הלוואות: <b style="color:var(--r600)">'+fmt(cc4.totalDebt)+'</b>';
+  }
+  // ── שנה שם [ישן] ל[חדש] ──
+  var rnM=ql.match(/שנה\s+שם\s+(?:של\s+)?([\u05d0-\u05eaA-Za-z\s]{2,20}?)\s+ל-?([\u05d0-\u05eaA-Za-z\s]{2,20}?)(?:\s*$)/);
+  if(rnM){var rnO=rnM[1].trim(),rnN=rnM[2].trim();
+    var rnF=[].concat(expenses,incomes,loans,savings,goals).find(function(x){return x.name&&(x.name.includes(rnO)||rnO.includes(x.name.split(' ')[0]));});
+    if(rnF){var rnOld=rnF.name;rnF.name=rnN;syncAll();return '✅ <b>שיניתי שם:</b> '+rnOld+' → <b>'+rnN+'</b>';}
+    return '❓ לא מצאתי "'+rnO+'".';}
+  // ── הגדל/הפחת [שם] ב-[סכום] ──
+  var adjM=ql.match(/(הגדל|תגדיל|להגדיל|הפחת|תפחית|להפחית)\s+([\u05d0-\u05eaA-Za-z\s]{2,20}?)\s+ב[-]?(\d[\d,]*)/);
+  if(adjM){var adjN=adjM[2].trim(),adjA=parseFloat(adjM[3].replace(/,/g,'')),adjUp=/הגדל|תגדיל|להגדיל/.test(adjM[1]);
+    var adjI=[].concat(expenses,incomes,savings).find(function(x){return x.name.includes(adjN)||adjN.includes(x.name.split(' ')[0]);});
+    if(adjI&&adjA>0){var adjF=adjI.amount!==undefined?'amount':'monthlyPayment';var adjOld=adjI[adjF];adjI[adjF]=adjUp?adjOld+adjA:Math.max(0,adjOld-adjA);syncAll();return '✅ <b>'+(adjUp?'הגדלתי':'הפחתתי')+':</b> '+adjI.name+': '+fmt(adjOld)+' → <b>'+fmt(adjI[adjF])+'</b>';}}
+  // ── כמה נשאר לשלם על [הלוואה] ──
+  var hmM=ql.match(/(?:כמה|מה)\s+(?:עוד\s+)?(?:לשלם|נותר)\s+(?:על|ל|ב)?\s*([\u05d0-\u05eaA-Za-z\s]{2,25}?)(?:\s*$)/);
+  if(hmM&&loans.length){var hmN=hmM[1].trim();var hmL=loans.find(function(l){return l.name.includes(hmN)||hmN.includes(l.name.split(' ')[0]);});if(hmL){var hmR=loanRemainingAt(hmL,monOffset)||hmL.remainingPayments;return '📊 <b>'+hmL.name+'</b>:<br>תשלומים: <b>'+hmR+'</b><br>יתרה: <b style="color:var(--r600)">'+fmt(hmR*hmL.monthlyPayment)+'</b>';}}
+  // ── מתי גומר [הלוואה] ──
+  var wM=ql.match(/(?:מתי|איזה חודש)\s+(?:גומר|מסתיים|יגמר|נגמר)\s+([\u05d0-\u05eaA-Za-z\s]{2,25}?)(?:\s*$)/);
+  if(wM&&loans.length){var wN=wM[1].trim();var wL=loans.find(function(l){return l.name.includes(wN)||wN.includes(l.name.split(' ')[0]);});if(wL){var wEnd=BASE_ABS+loanOffsetFromBase(wL)+wL.remainingPayments;return '📅 <b>'+wL.name+'</b> מסתיימת ב<b>'+MONTHS[wEnd%12]+'</b> '+Math.floor(wEnd/12)+'.';} }
+  // ── כמה חסכתי ביעד [שם] ──
+  var gpM=ql.match(/(?:כמה|מה)\s+(?:חסכתי|חסכנו|שמרתי)(?:\s+ביעד|\s+ל|\s+על)?\s*([\u05d0-\u05eaA-Za-z\s]{2,25}?)(?:\s*$)/);
+  if(gpM&&goals.length){var gpN=gpM[1].trim();var gpG=goals.find(function(g){return g.name.includes(gpN)||gpN.includes(g.name.split(' ')[0]);});if(gpG){var gpP=gpG.target>0?Math.round(gpG.saved/gpG.target*100):0;return '🎯 <b>'+gpG.name+'</b>:<br>נחסך: <b>'+fmt(gpG.saved)+'</b> מתוך '+fmt(gpG.target)+'<br>'+gpP+'%'+(gpP>=100?' ✅ הגעת ליעד!':'');}}
+  // ── השגתי יעד [שם] ──
+  var achM=ql.match(/(?:השגתי|הגעתי|סיימתי)\s+(?:את\s+)?(?:היעד|יעד)\s+([\u05d0-\u05eaA-Za-z\s]{2,25})/);
+  if(achM){var achG=goals.find(function(g){return g.name.includes(achM[1].trim())||achM[1].trim().includes(g.name.split(' ')[0]);});if(achG){achG.saved=achG.target;saveData();renderGoals();return '🎉 <b>מזל טוב!</b> "'+achG.name+'" ✅';}}
+  // ── פרטים על [שם] ──
+  var dtM=ql.match(/(?:פרטים|מידע|ספר לי)\s+(?:על|ב|ל)?\s*([\u05d0-\u05eaA-Za-z\s]{2,25}?)(?:\s*$)/);
+  if(dtM){var dtN=dtM[1].trim();var dtI=[].concat(expenses,incomes,loans,savings,goals).find(function(x){return x.name&&(x.name.includes(dtN)||dtN.includes(x.name.split(' ')[0]));});
+    if(dtI){var dLines=['<b>'+dtI.name+'</b>'];if(dtI.amount!==undefined)dLines.push('סכום: '+fmt(dtI.amount));if(dtI.monthlyPayment)dLines.push('תשלום חודשי: '+fmt(dtI.monthlyPayment));if(dtI.remainingPayments)dLines.push('תשלומים: '+dtI.remainingPayments);if(dtI.freq)dLines.push('תדירות: '+dtI.freq);if(dtI.type)dLines.push('סוג: '+dtI.type);if(dtI.startDate)dLines.push('מ: '+dtI.startDate);if(dtI.note)dLines.push('הערה: '+dtI.note);if(dtI.target)dLines.push('יעד: '+fmt(dtI.target)+' | נחסך: '+fmt(dtI.saved||0));return '📋 '+dLines.join('<br>');}}
+  // ── הצג / מחק מילים נרדפות ──
+  if(/(?:(?:כמה|מה|הצג)\s+)?(?:מילים\s+נרדפות|פקודות\s+מותאמות|synonyms|הגדרות\s+אישיות)/.test(ql)){var sk=Object.keys(customSynonyms);var GH={add:'הוספה',update:'עדכון',delete:'מחיקה',show:'הצגה',nav:'ניווט',find:'חיפוש'};if(!sk.length)return '📚 אין מילים נרדפות שמורות עדיין.';return '📚 <b>מילים נרדפות ('+sk.length+'):</b><br>'+sk.map(function(w){return '• <b>'+w+'</b> → '+(GH[customSynonyms[w]]||customSynonyms[w]);}).join('<br>');}
+  var dlM=ql.match(/(?:מחק|הסר)\s+(?:מילה\s+נרדפת|פקודה)\s+([\u05d0-\u05eaA-Za-z\w]+)/);
+  if(dlM){var dlW=dlM[1].trim();if(customSynonyms[dlW]!==undefined){delete customSynonyms[dlW];saveSynonyms();rebuildVerbPatterns();return '🗑️ <b>הסרתי</b> "'+dlW+'"';}return '❓ לא מצאתי "'+dlW+'".'}
+  // ── נעילה ──
+  if(/(?:נעל|לנעול|lock|התנתק|logout)/.test(ql)){setTimeout(function(){logoutApp();},800);return '🔐 <b>נועל...</b>';}
   return null;
 }
 
@@ -2126,6 +2293,18 @@ function personalAI(q){
       return '✅ עברתי ל<b>'+nm[matched]+'</b>!';
     }
   }
+  if(/נקה שיחה|אפס שיחה|חדש שיחה|clear/.test(ql)){
+    chatHistory=[];
+    var el2=document.getElementById('aiMsgs');if(el2)el2.innerHTML='';
+    return '🗑️ <b>השיחה נוקתה.</b> נתחיל מחדש!';
+  }
+  if(/(?:ייצא|יצא|גבה)\s*(?:גיבוי|backup)/.test(ql)){setTimeout(function(){exportJSON();},400);return '💾 <b>מייצא גיבוי...</b>';}
+  if(/מצב לילה|darkmode/.test(ql)){if(!document.body.classList.contains('dark'))toggleDark();return '🌙 <b>מצב לילה פעיל.</b>';}
+  if(/מצב בהיר|light mode/.test(ql)){if(document.body.classList.contains('dark'))toggleDark();return '☀️ <b>מצב בהיר פעיל.</b>';}
+  if(/כמה\s*אני\s*מוציא|סך\s*הוצאות/.test(ql)){var cc=ctx();return '📊 הוצאות: <b style="color:var(--r600)">'+fmt(cc.totalExp)+'</b><br>מזה הלוואות: <b>'+fmt(cc.lMon)+'</b>';}
+  if(/כמה\s*נשאר|יתרה|מאזן/.test(ql)){var cc2=ctx();return (cc2.balance>=0?'✅':'⚠️')+' <b>יתרה: <span style="color:var(--)">'+(cc2.balance>=0?'':'')+(cc2.balance>=0?'var(--gr600)':'var(--r600)')+'">'+fmt(Math.abs(cc2.balance))+'</span></b>';}
+  if(/^עזרה$|^פקודות$|מה אתה יכול|רשימת פקודות/.test(ql))return '🤖 <b>רשימת פקודות:</b><br><br>'+'<b>➕ הוספה:</b> הוסף הוצאה/הכנסה/הלוואה/חיסכון/יעד [שם] [סכום]<br>'+'<b>✏️ עדכון:</b> עדכן [שם] ל-[סכום] · שנה שם [ישן] ל-[חדש] · הגדל/הפחת [שם] ב-[סכום]<br>'+'<b>🗑️ מחיקה:</b> מחק [שם]<br>'+'<b>🏦 הלוואות:</b> כמה נשאר על [שם] · מתי גומר [שם] · עדכן תשלומים של [שם] ל-[מספר]<br>'+'<b>🎯 יעדים:</b> כמה חסכתי ביעד [שם] · השגתי יעד [שם]<br>'+'<b>📊 מידע:</b> פרטים על [שם] · כמה אני מוציא · כמה נשאר · מה הבריאות הפיננסית<br>'+'<b>🧭 ניווט:</b> לך ל [הוצאות/הלוואות/חסכונות/גרפים/יעדים/גיבוי]<br>'+'<b>🌙 הגדרות:</b> מצב לילה/בהיר · ייצא גיבוי · נעל<br>'+'<b>🧠 למידה:</b> אמור פקודה לא מוכרת → אציע לקשר · הצג מילים נרדפות<br>'+'<b>💬 שיחה:</b> קוראים לי [שם] · מה שמי · נקה שיחה<br><i style="color:var(--g400)">גם בקול! לחץ 🎤</i>';
+  if(/נקה שיחה|אפס שיחה/.test(ql)){chatHistory=[];var e2=document.getElementById('aiMsgs');if(e2)e2.innerHTML='';return '🗑️ <b>השיחה נוקתה.</b>';}
   if(ql.includes('כמה פעמים')||ql.includes('מתי נכנסתי'))return '📊 נכנסת <b>'+((userProfile&&userProfile.sessionCount)||1)+' פעמים</b> עד כה.';
   if(ql.includes('מה אתה יודע')||ql.includes('מה ידוע לך')){
     var lines=[];

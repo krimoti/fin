@@ -666,20 +666,32 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
 
 
 // ── GLOBAL ERROR CATCHER ──
-// Filters out errors from browser extensions / third-party scripts (which
-// otherwise show up as false-alarm red banners with nothing to do with this
-// app), and avoids stacking duplicate banners on repeated errors.
+// Filters out errors from browser extensions / cross-origin third-party
+// scripts (which otherwise show up as false-alarm red banners with nothing
+// to do with this app), and avoids stacking duplicate banners on repeated
+// errors.
+//
+// Browser behavior this depends on: for a script error the browser CAN
+// attribute (same-document inline scripts, or a real same-origin external
+// script), `src` is a real URL — either exactly location.href (inline) or
+// a resolvable same-origin URL. For an error the browser deliberately
+// hides for security (a cross-origin script without CORS, or — very
+// commonly — a browser extension's injected content script), the browser
+// sends the generic signature: message "Script error.", src === "" (empty
+// string, NOT undefined), line 0, col 0, no Error object. That empty-string
+// case must be treated as "not ours", not as "no src = must be inline".
 (function(){
   var bannerEl = null;
   function isOwnScript(src){
-    if(!src) return true; // no src = inline <script> on this page = ours
+    if(src === location.href) return true; // same-document inline script (incl. the dynamically-injected Chart.js block)
+    if(!src) return false; // empty/missing source = browser-muted error (extension, no-CORS script, etc.) — NOT ours
     try{
       var u = new URL(src, location.href);
       return u.origin === location.origin;
-    }catch(e){ return true; } // can't parse it -> fail safe, don't hide it
+    }catch(e){ return false; } // can't parse it — be safe, don't show a false alarm
   }
   window.onerror = function(msg,src,line,col,err){
-    if(!isOwnScript(src)) return false; // not our code (likely a browser extension) — ignore
+    if(!isOwnScript(src)) return false; // not our code — likely a browser extension or third-party script — ignore
     var text = 'ERR L'+line+': '+msg+(err && err.message ? ' | '+err.message : '');
     if(bannerEl && bannerEl.isConnected){
       bannerEl.querySelector('.err-text').textContent = text;

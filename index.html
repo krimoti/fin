@@ -293,7 +293,7 @@ body{font-family:'Heebo',sans-serif;background:linear-gradient(160deg,#dbeeff,#f
 .ai-m.ai{background:var(--b50);color:var(--b900);border-radius:13px 13px 13px 3px;align-self:flex-start;border:1px solid var(--b100)}
 .ai-m.me{background:var(--b500);color:#fff;border-radius:13px 13px 3px 13px;align-self:flex-end}
 .ai-row{display:flex;gap:7px}
-.ai-in{flex:1;padding:12px 14px;border:1.5px solid var(--g200);border-radius:24px;font-family:'Heebo',sans-serif;font-size:15px;outline:none;background:#fff;-webkit-appearance:none}
+.ai-in{flex:1;padding:12px 14px;border:1.5px solid var(--g200);border-radius:24px;font-family:'Heebo',sans-serif;font-size:16px;outline:none;background:#fff;-webkit-appearance:none}
 .ai-in:focus{border-color:var(--b400)}
 .ai-go{background:var(--b500);color:#fff;border:none;padding:12px 16px;border-radius:24px;cursor:pointer;font-family:'Heebo',sans-serif;font-size:14px;font-weight:600;white-space:nowrap;min-height:48px}
 .ai-go:active{background:var(--b700)}
@@ -312,7 +312,7 @@ body{font-family:'Heebo',sans-serif;background:linear-gradient(160deg,#dbeeff,#f
 .mb-close{background:var(--g100);border:none;cursor:pointer;width:30px;height:30px;border-radius:50%;font-size:18px;color:var(--g500);display:flex;align-items:center;justify-content:center}
 .fg{margin-bottom:13px}
 .fl{display:block;font-size:12px;font-weight:600;color:var(--g600);margin-bottom:4px}
-.fi{width:100%;padding:12px 13px;border:1.5px solid var(--g200);border-radius:var(--rx);font-family:'Heebo',sans-serif;font-size:15px;color:var(--g800);outline:none;-webkit-appearance:none;background:#fff}
+.fi{width:100%;padding:12px 13px;border:1.5px solid var(--g200);border-radius:var(--rx);font-family:'Heebo',sans-serif;font-size:16px;color:var(--g800);outline:none;-webkit-appearance:none;background:#fff}
 .fi:focus{border-color:var(--b400)}
 .fr{display:grid;grid-template-columns:1fr 1fr;gap:9px}
 .edit-mode-badge{background:var(--a100);color:var(--a700);font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;display:inline-flex;align-items:center;gap:4px}
@@ -548,6 +548,32 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
   </div>
 </div>
 
+<script>
+// ── LOCK #p-ai HEIGHT TO THE REAL VISIBLE VIEWPORT ──
+// CSS vh/svh/dvh units alone are not fully reliable across iOS Safari
+// versions and PWA/standalone mode for tracking the keyboard opening and
+// closing. window.visualViewport reports the ACTUAL visible area in real
+// time, so we set #p-ai's height directly in pixels and keep it in sync.
+// This is what stops the header/footer from "floating" or duplicating
+// when a text input is focused and the keyboard appears.
+(function(){
+  var pai = document.getElementById('p-ai');
+  if(!pai) return;
+  function syncHeight(){
+    var h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+    pai.style.height = h + 'px';
+  }
+  syncHeight();
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', syncHeight);
+    window.visualViewport.addEventListener('scroll', syncHeight);
+  } else {
+    window.addEventListener('resize', syncHeight);
+  }
+  window.addEventListener('orientationchange', function(){ setTimeout(syncHeight, 50); });
+})();
+</script>
+
 <!-- OVERLAYS -->
 <div class="panel-overlay" id="p-exp" style="display:none">
   <div class="overlay-header"><div class="overlay-title">📊 הוצאות</div><button class="overlay-close" onclick="closeOverlay()">×</button></div>
@@ -614,7 +640,7 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
     <p style="font-size:12px;color:var(--g500);margin-bottom:12px">כשפותחים מסך (הוצאות, הלוואות וכו') — אחרי כמה זמן חוזרים אוטומטית למסך ה-AI?</p>
     <div id="timerOptions" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"></div>
   </div>
-  <div class="pc"><div class="ph"><div class="pt">🔑 אבטחה</div></div><button class="btn-add" style="width:100%;justify-content:center;background:var(--g600);margin-bottom:8px" onclick="toggleChangePassForm()">🔑 שנה סיסמה</button><div id="changePassForm" style="display:none;margin-bottom:8px"><input type="password" id="cpOld" placeholder="סיסמה נוכחית" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:14px"><input type="password" id="cpNew" placeholder="סיסמה חדשה (לפחות 4 תווים)" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:14px"><input type="password" id="cpNew2" placeholder="אימות סיסמה חדשה" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:14px"><div id="cpErr" style="font-size:12px;margin-bottom:6px;min-height:16px"></div><button class="btn-add" style="width:100%;justify-content:center" onclick="submitChangePass()">✓ עדכן סיסמה</button></div><button class="btn-add" style="width:100%;justify-content:center;background:var(--r600)" onclick="logoutApp()">🚪 נעל</button></div>
+  <div class="pc"><div class="ph"><div class="pt">🔑 אבטחה</div></div><button class="btn-add" style="width:100%;justify-content:center;background:var(--g600);margin-bottom:8px" onclick="toggleChangePassForm()">🔑 שנה סיסמה</button><div id="changePassForm" style="display:none;margin-bottom:8px"><input type="password" id="cpOld" placeholder="סיסמה נוכחית" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:16px"><input type="password" id="cpNew" placeholder="סיסמה חדשה (לפחות 4 תווים)" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:16px"><input type="password" id="cpNew2" placeholder="אימות סיסמה חדשה" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:16px"><div id="cpErr" style="font-size:12px;margin-bottom:6px;min-height:16px"></div><button class="btn-add" style="width:100%;justify-content:center" onclick="submitChangePass()">✓ עדכן סיסמה</button></div><button class="btn-add" style="width:100%;justify-content:center;background:var(--r600)" onclick="logoutApp()">🚪 נעל</button></div>
   <div class="pc"><div class="ph"><div class="pt">🎯 תקציבים חודשיים</div></div>
     <p style="font-size:12px;color:var(--g500);margin-bottom:10px">קבע סכום מקסימלי לחודש לכל סוג הוצאה. תקבל התראה כשמתקרבים או חורגים.</p>
     <div id="budgetSettingsList"></div>
@@ -2077,7 +2103,7 @@ function showLearnPrompt(question,el){
       +'לאיזו פעולה לקשר אותה? אזכור לתמיד 🧠<br><br>'
       +'<div style="display:flex;flex-wrap:wrap;margin-top:4px">'+btns+'</div>'
       +'<div id="learnFreeDiv" style="display:none;margin-top:8px">'
-        +'<input id="learnInput" class="ai-in" style="width:100%;box-sizing:border-box;border-radius:8px;font-size:13px" placeholder="הכנס תשובה חופשית...">'
+        +'<input id="learnInput" class="ai-in" style="width:100%;box-sizing:border-box;border-radius:8px;font-size:16px" placeholder="הכנס תשובה חופשית...">'
         +'<button onclick="submitLearn()" style="background:var(--a600);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;margin-top:6px;width:100%">למד ✓</button>'
       +'</div>'
       +'<button onclick="skipLearn()" style="background:none;border:none;color:var(--g400);font-size:11px;cursor:pointer;margin-top:8px;display:block">דלג</button>'
@@ -2086,7 +2112,7 @@ function showLearnPrompt(question,el){
     el.innerHTML+='<div class="ai-m ai" id="learnPrompt" style="border:1.5px dashed var(--a600);background:var(--a100)">'
       +'🤔 <b>לא ידעתי לענות על זה.</b><br>מה התשובה הנכונה? אלמד ואזכור 🧠<br><br>'
       +'<div style="display:flex;gap:8px;margin-top:6px">'
-      +'<input id="learnInput" class="ai-in" style="flex:1;border-radius:8px;font-size:13px" placeholder="הכנס תשובה...">'
+      +'<input id="learnInput" class="ai-in" style="flex:1;border-radius:8px;font-size:16px" placeholder="הכנס תשובה...">'
       +'<button onclick="submitLearn()" style="background:var(--a600);color:#fff;border:none;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:13px;font-weight:600">למד ✓</button>'
       +'</div>'
       +'<button onclick="skipLearn()" style="background:none;border:none;color:var(--g400);font-size:11px;cursor:pointer;margin-top:6px">דלג</button>'
@@ -2141,7 +2167,7 @@ function kbEntryRow(e){
     +'<div style="margin-top:4px">'+ansRows+'</div>'
     +randomNote
     +'<div style="display:flex;gap:6px;margin-top:6px">'
-    +'<input id="kbNewAns_'+e.id+'" placeholder="הוסף תשובה אפשרית נוספת..." style="flex:1;box-sizing:border-box;padding:6px 8px;border-radius:6px;border:1px solid var(--g200);font-family:Heebo,sans-serif;font-size:12px">'
+    +'<input id="kbNewAns_'+e.id+'" placeholder="הוסף תשובה אפשרית נוספת..." style="flex:1;box-sizing:border-box;padding:6px 8px;border-radius:6px;border:1px solid var(--g200);font-family:Heebo,sans-serif;font-size:16px">'
     +'<button onclick="addKBAnswerVariant('+e.id+')" style="background:var(--gr600);border:none;color:#fff;padding:0 12px;border-radius:6px;cursor:pointer;font-size:13px;flex-shrink:0">➕</button>'
     +'</div>'
     +'<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px">'

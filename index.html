@@ -384,7 +384,7 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
 .overlay-close{background:var(--g100);border:none;width:36px;height:36px;border-radius:50%;font-size:22px;cursor:pointer;color:var(--g500);display:flex;align-items:center;justify-content:center}
 /* ── AI FIRST LAYOUT ── */
 .app{padding-bottom:0!important}
-#p-ai{display:flex;flex-direction:column;height:100vh;height:100svh;height:100dvh;padding:0}
+#p-ai{position:fixed;top:0;left:0;right:0;max-width:680px;margin:0 auto;display:flex;flex-direction:column;height:100vh;height:100svh;height:100dvh;padding:0}
 .ai-header-bar{background:linear-gradient(135deg,var(--b700),var(--b500));padding:calc(12px + env(safe-area-inset-top, 0px)) 16px 10px;color:white;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .ai-header-title{font-size:16px;font-weight:700}
 .ai-header-sub{font-size:11px;opacity:.75;margin-top:1px}
@@ -507,7 +507,7 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
 <div class="app">
 
 <!-- AI MAIN PANEL -->
-<div id="p-ai" style="display:flex;flex-direction:column;height:100vh;height:100svh;height:100dvh;overflow:hidden;padding:0">
+<div id="p-ai" style="position:fixed;top:0;left:0;right:0;max-width:680px;margin:0 auto;display:flex;flex-direction:column;height:100vh;height:100svh;height:100dvh;overflow:hidden;padding:0">
   <div class="ai-header-bar">
     <div>
       <div class="ai-header-title">💼 ניהול פיננסי</div>
@@ -549,28 +549,43 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
 </div>
 
 <script>
-// ── LOCK #p-ai HEIGHT TO THE REAL VISIBLE VIEWPORT ──
+// ── LOCK #p-ai TO THE REAL VISIBLE VIEWPORT (SIZE + POSITION) ──
 // CSS vh/svh/dvh units alone are not fully reliable across iOS Safari
 // versions and PWA/standalone mode for tracking the keyboard opening and
 // closing. window.visualViewport reports the ACTUAL visible area in real
-// time, so we set #p-ai's height directly in pixels and keep it in sync.
-// This is what stops the header/footer from "floating" or duplicating
-// when a text input is focused and the keyboard appears.
+// time — both its height AND how far it's been panned from the layout
+// viewport's top (offsetTop). #p-ai is position:fixed and kept in sync
+// with both, so it can never end up misaligned with what's actually on
+// screen (which is what caused the header to appear to float/duplicate,
+// and the focused input to seem to vanish above the visible area).
 (function(){
   var pai = document.getElementById('p-ai');
   if(!pai) return;
-  function syncHeight(){
-    var h = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
-    pai.style.height = h + 'px';
+  function syncViewport(){
+    if(window.visualViewport){
+      pai.style.height = window.visualViewport.height + 'px';
+      // offsetTop = how far the visible (visual) viewport has been panned
+      // away from the top of the layout viewport. Without this, the
+      // container's SIZE tracks the keyboard correctly but its POSITION
+      // doesn't — so the native "scroll focused input into view" behavior
+      // can shift the real visible frame down while this fixed element
+      // stays pinned at layout-viewport top:0, making the input appear to
+      // vanish above the visible area until something (typing, blur)
+      // resets the scroll.
+      pai.style.top = window.visualViewport.offsetTop + 'px';
+    } else {
+      pai.style.height = window.innerHeight + 'px';
+      pai.style.top = '0px';
+    }
   }
-  syncHeight();
+  syncViewport();
   if(window.visualViewport){
-    window.visualViewport.addEventListener('resize', syncHeight);
-    window.visualViewport.addEventListener('scroll', syncHeight);
+    window.visualViewport.addEventListener('resize', syncViewport);
+    window.visualViewport.addEventListener('scroll', syncViewport);
   } else {
-    window.addEventListener('resize', syncHeight);
+    window.addEventListener('resize', syncViewport);
   }
-  window.addEventListener('orientationchange', function(){ setTimeout(syncHeight, 50); });
+  window.addEventListener('orientationchange', function(){ setTimeout(syncViewport, 50); });
 })();
 </script>
 

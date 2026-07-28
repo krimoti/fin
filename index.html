@@ -666,13 +666,41 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
 
 
 // ── GLOBAL ERROR CATCHER ──
-window.onerror = function(msg,src,line,col,err){
-  var div=document.createElement('div');
-  div.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#c00;color:#fff;padding:8px;font-size:11px;font-family:monospace;word-break:break-all';
-  div.textContent='ERR L'+line+': '+msg+(err?' | '+err.message:'');
-  document.body.appendChild(div);
-  return false;
-};
+// Filters out errors from browser extensions / third-party scripts (which
+// otherwise show up as false-alarm red banners with nothing to do with this
+// app), and avoids stacking duplicate banners on repeated errors.
+(function(){
+  var bannerEl = null;
+  function isOwnScript(src){
+    if(!src) return true; // no src = inline <script> on this page = ours
+    try{
+      var u = new URL(src, location.href);
+      return u.origin === location.origin;
+    }catch(e){ return true; } // can't parse it -> fail safe, don't hide it
+  }
+  window.onerror = function(msg,src,line,col,err){
+    if(!isOwnScript(src)) return false; // not our code (likely a browser extension) — ignore
+    var text = 'ERR L'+line+': '+msg+(err && err.message ? ' | '+err.message : '');
+    if(bannerEl && bannerEl.isConnected){
+      bannerEl.querySelector('.err-text').textContent = text;
+      return false;
+    }
+    bannerEl = document.createElement('div');
+    bannerEl.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#c00;color:#fff;padding:8px 32px 8px 8px;font-size:11px;font-family:monospace;word-break:break-all';
+    var textSpan = document.createElement('span');
+    textSpan.className = 'err-text';
+    textSpan.textContent = text;
+    bannerEl.appendChild(textSpan);
+    var closeBtn = document.createElement('button');
+    closeBtn.textContent = '✕';
+    closeBtn.setAttribute('aria-label','סגור הודעת שגיאה');
+    closeBtn.style.cssText = 'position:absolute;top:4px;right:8px;background:none;border:none;color:#fff;font-size:14px;cursor:pointer;line-height:1';
+    closeBtn.onclick = function(){ if(bannerEl && bannerEl.parentNode) bannerEl.parentNode.removeChild(bannerEl); bannerEl=null; };
+    bannerEl.appendChild(closeBtn);
+    document.body.appendChild(bannerEl);
+    return false;
+  };
+})();
 
 // ── CONSTANTS ──
 var MONTHS=['ינואר','פברואר','מרץ','אפריל','מאי','יוני','יולי','אוגוסט','ספטמבר','אוקטובר','נובמבר','דצמבר'];
@@ -2321,14 +2349,8 @@ function initExtras(){
 }
 
 // ══════════════════════════════════════
-// 📱 PWA + GLOBAL ERROR + INIT
+// 📱 PWA + INIT
 // ══════════════════════════════════════
-window.onerror=function(msg,src,line,col,err){
-  var div=document.createElement('div');
-  div.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:#c00;color:#fff;padding:8px;font-size:11px;font-family:monospace;word-break:break-all';
-  div.textContent='ERR L'+line+': '+msg+(err?' | '+err.message:'');
-  document.body.appendChild(div);return false;
-};
 var deferredPrompt=null;
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();deferredPrompt=e;var btn=document.getElementById('pwaInstallBtn');if(btn)btn.style.display='block';});
 function installPWA(){if(!deferredPrompt)return;deferredPrompt.prompt();deferredPrompt.userChoice.then(function(){deferredPrompt=null;var btn=document.getElementById('pwaInstallBtn');if(btn)btn.style.display='none';});}

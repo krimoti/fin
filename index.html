@@ -492,7 +492,7 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
 
 <!-- מסך נעילה -->
 <div class="lock-screen show" id="lockScreen">
-  <div class="lock-card">
+  <div class="lock-card" id="lockLoginCard">
     <div class="lock-icon" id="lockIcon">🔐</div>
     <div class="lock-title" id="lockTitle">ניהול פיננסי</div>
     <div class="lock-sub" id="lockSub">הכנס סיסמה כדי להמשיך</div>
@@ -501,6 +501,32 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
     <div class="lock-err" id="lockErr"></div>
     <div class="lock-hint" id="lockHint"></div>
     <!-- כפתור שינוי סיסמה הוסר ממסך הנעילה מטעמי אבטחה: שינוי סיסמה אפשרי רק מתוך פאנל ההגדרות, לאחר כניסה -->
+    <!-- שחזור סיסמה שונה: הוא דורש קוד שחזור סודי שרק בעל החשבון מחזיק, ולכן לא פוגע באבטחת מסך הנעילה -->
+    <div id="lockForgotBtn" style="display:none;margin-top:14px">
+      <a href="javascript:void(0)" onclick="showForgotForm()" style="font-size:13px;color:var(--g500);text-decoration:underline">שכחת סיסמה?</a>
+    </div>
+  </div>
+
+  <div class="lock-card" id="forgotCard" style="display:none">
+    <div class="lock-icon">🔑</div>
+    <div class="lock-title">שחזור סיסמה</div>
+    <div class="lock-sub" style="margin-bottom:14px">הזן/י את קוד השחזור שקיבלת ביצירת הסיסמה</div>
+    <input class="lock-input" id="forgotCode" type="text" placeholder="קוד שחזור" maxlength="20" style="letter-spacing:2px;text-transform:uppercase" autocomplete="off">
+    <input class="lock-input" id="forgotNew" type="password" placeholder="סיסמה חדשה (לפחות 4 תווים)" maxlength="20">
+    <input class="lock-input" id="forgotNew2" type="password" placeholder="אימות סיסמה חדשה" maxlength="20">
+    <button class="lock-btn" onclick="submitRecovery()">✓ אפס סיסמה</button>
+    <div class="lock-err" id="forgotErr"></div>
+    <div style="margin-top:10px">
+      <a href="javascript:void(0)" onclick="hideForgotForm()" style="font-size:13px;color:var(--g500);text-decoration:underline">חזרה לכניסה</a>
+    </div>
+  </div>
+
+  <div class="lock-card" id="recoveryRevealCard" style="display:none">
+    <div class="lock-icon">📝</div>
+    <div class="lock-title">שמרי את קוד השחזור שלך!</div>
+    <div class="lock-sub" style="margin-bottom:14px">זו ההזדמנות היחידה לראות את הקוד הזה. בלעדיו, אם תשכחי את הסיסמה — לא תהיה דרך לשחזר גישה לנתונים שלך.<br><b>שמרי אותו במקום נפרד מהטלפון</b> (פתק פיזי, מנג'ר סיסמאות וכו').</div>
+    <div id="recoveryCodeDisplay" style="font-size:22px;font-weight:700;letter-spacing:3px;background:var(--g50);border:2px dashed var(--g300);border-radius:var(--rs);padding:16px;margin-bottom:14px;direction:ltr;text-align:center"></div>
+    <button class="lock-btn" onclick="confirmRecoverySaved()">✓ שמרתי את הקוד, המשך</button>
   </div>
 </div>
 
@@ -1876,21 +1902,109 @@ function doResetAllData(){
 // ══════════════════════════════════════
 // 🔐 AUTH
 // ══════════════════════════════════════
-var LS_PASS='finapp_pass',LS_SESS='finapp_sess';
+var LS_PASS='finapp_pass',LS_SESS='finapp_sess',LS_RECOVERY='finapp_recovery';
 function saveSession(){try{localStorage.setItem(LS_SESS,Date.now().toString());}catch(e){}}
 function clearSession(){try{localStorage.removeItem(LS_SESS);}catch(e){}}
 function checkSession(){try{var s=localStorage.getItem(LS_SESS);if(!s)return false;return(Date.now()-parseInt(s))<30*60*1000;}catch(e){return false;}}
-function lockSubmit(){
+
+// SHA-256 hex hash via the Web Crypto API. Falls back to a simple
+// non-cryptographic hash only if SubtleCrypto is unavailable (e.g. a
+// non-secure context) — still far better than storing the recovery code
+// as plain text, which is what would otherwise let anyone reading
+// localStorage bypass the lock screen entirely.
+async function hashText(text){
+  try{
+    if(window.crypto && window.crypto.subtle){
+      var enc=new TextEncoder().encode(text);
+      var buf=await window.crypto.subtle.digest('SHA-256',enc);
+      return Array.from(new Uint8Array(buf)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+    }
+  }catch(e){}
+  var h=0;
+  for(var i=0;i<text.length;i++){h=((h<<5)-h+text.charCodeAt(i))|0;}
+  return 'fb'+Math.abs(h).toString(16);
+}
+
+// Generates a random recovery code from an alphabet that excludes visually
+// ambiguous characters (0/O, 1/I/l), formatted as XXXXX-XXXXX for readability.
+function genRecoveryCode(){
+  var alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  var bytes=new Uint8Array(10);
+  if(window.crypto && window.crypto.getRandomValues){window.crypto.getRandomValues(bytes);}
+  else{for(var i=0;i<10;i++){bytes[i]=Math.floor(Math.random()*256);}}
+  var code='';
+  for(var i=0;i<10;i++){code+=alphabet[bytes[i]%alphabet.length];}
+  return code.slice(0,5)+'-'+code.slice(5);
+}
+
+async function lockSubmit(){
   var inp=document.getElementById('lockInput'),err=document.getElementById('lockErr');
   var pass=inp?inp.value:'',stored=null;
   try{stored=localStorage.getItem(LS_PASS);}catch(e){}
   if(!stored){
-    if(pass.length>=4){try{localStorage.setItem(LS_PASS,pass);}catch(e){}unlock();}
+    if(pass.length>=4){
+      try{localStorage.setItem(LS_PASS,pass);}catch(e){}
+      var code=genRecoveryCode();
+      try{localStorage.setItem(LS_RECOVERY,await hashText(code));}catch(e){}
+      showRecoveryReveal(code);
+    }
     else{if(err)err.textContent='סיסמה חייבת להיות לפחות 4 תווים';}
   } else {
     if(pass===stored){unlock();}
     else{if(err)err.textContent='סיסמה שגויה';if(inp){inp.value='';inp.focus();}}
   }
+}
+
+function showRecoveryReveal(code){
+  var login=document.getElementById('lockLoginCard'),reveal=document.getElementById('recoveryRevealCard');
+  if(login)login.style.display='none';
+  if(reveal){
+    reveal.style.display='block';
+    var d=document.getElementById('recoveryCodeDisplay');
+    if(d)d.textContent=code;
+  }
+}
+function confirmRecoverySaved(){
+  var reveal=document.getElementById('recoveryRevealCard'),login=document.getElementById('lockLoginCard');
+  if(reveal)reveal.style.display='none';
+  if(login)login.style.display='block';
+  unlock();
+}
+
+function showForgotForm(){
+  var login=document.getElementById('lockLoginCard'),forgot=document.getElementById('forgotCard');
+  if(login)login.style.display='none';
+  if(forgot){
+    forgot.style.display='block';
+    var c=document.getElementById('forgotCode'),n=document.getElementById('forgotNew'),n2=document.getElementById('forgotNew2'),e=document.getElementById('forgotErr');
+    if(c){c.value='';c.focus();}
+    if(n)n.value='';
+    if(n2)n2.value='';
+    if(e)e.textContent='';
+  }
+}
+function hideForgotForm(){
+  var forgot=document.getElementById('forgotCard'),login=document.getElementById('lockLoginCard');
+  if(forgot)forgot.style.display='none';
+  if(login)login.style.display='block';
+}
+async function submitRecovery(){
+  var c=document.getElementById('forgotCode'),n=document.getElementById('forgotNew'),n2=document.getElementById('forgotNew2'),e=document.getElementById('forgotErr');
+  var code=c?c.value.trim().toUpperCase():'',newPass=n?n.value:'',newPass2=n2?n2.value:'';
+  var storedHash=null;try{storedHash=localStorage.getItem(LS_RECOVERY);}catch(err){}
+  if(!storedHash){if(e){e.style.color='var(--r600)';e.textContent='❌ לא הוגדר קוד שחזור עבור המשתמש הזה.';}return;}
+  if(!code){if(e){e.style.color='var(--r600)';e.textContent='❌ נא להזין קוד שחזור.';}return;}
+  var inputHash=await hashText(code);
+  if(inputHash!==storedHash){
+    if(e){e.style.color='var(--r600)';e.textContent='❌ קוד שחזור שגוי.';}
+    if(c){c.value='';c.focus();}
+    return;
+  }
+  if(!newPass||newPass.length<4){if(e){e.style.color='var(--r600)';e.textContent='❌ הסיסמה החדשה חייבת להיות לפחות 4 תווים.';}return;}
+  if(newPass!==newPass2){if(e){e.style.color='var(--r600)';e.textContent='❌ הסיסמאות אינן תואמות.';}return;}
+  try{localStorage.setItem(LS_PASS,newPass);}catch(err){}
+  if(e){e.style.color='var(--g600)';e.textContent='✅ הסיסמה אופסה בהצלחה!';}
+  setTimeout(function(){hideForgotForm();unlock();},1200);
 }
 function unlock(){
   try{var ls=document.getElementById('lockScreen');if(ls)ls.style.display='none';}catch(e){}
@@ -2411,9 +2525,9 @@ document.addEventListener('DOMContentLoaded',function(){
   var d=new Date();
   var hdrDate=document.getElementById('hdrDate');if(hdrDate)hdrDate.textContent=d.toLocaleDateString('he-IL',{weekday:'long',day:'numeric',month:'long'});
   var stored=null;try{stored=localStorage.getItem(LS_PASS);}catch(e){}
-  var lockTitle=document.getElementById('lockTitle'),lockSub=document.getElementById('lockSub'),lockBtn2=document.getElementById('lockBtn'),lockHint=document.getElementById('lockHint'),lockChangeBtn=document.getElementById('lockChangeBtn');
+  var lockTitle=document.getElementById('lockTitle'),lockSub=document.getElementById('lockSub'),lockBtn2=document.getElementById('lockBtn'),lockHint=document.getElementById('lockHint'),lockForgotBtn=document.getElementById('lockForgotBtn');
   if(!stored){if(lockTitle)lockTitle.textContent='ברוך הבא!';if(lockSub)lockSub.textContent='צור סיסמה לאבטחת הנתונים';if(lockBtn2)lockBtn2.textContent='צור סיסמה ✓';if(lockHint)lockHint.textContent='הסיסמה נשמרת מקומית בלבד';}
-  else{if(lockChangeBtn)lockChangeBtn.style.display='block';}
+  else{if(lockForgotBtn)lockForgotBtn.style.display='block';}
   if(checkSession()){unlock();}else{var ls=document.getElementById('lockScreen');if(ls)ls.style.display='flex';}
   // PWA manifest disabled
 });

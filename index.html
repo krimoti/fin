@@ -681,7 +681,7 @@ body.dark .qa-btn{background:#162035;border-color:#2a3a5c;color:#93c5fd}
     <p style="font-size:12px;color:var(--g500);margin-bottom:12px">כשפותחים מסך (הוצאות, הלוואות וכו') — אחרי כמה זמן חוזרים אוטומטית למסך ה-AI?</p>
     <div id="timerOptions" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px"></div>
   </div>
-  <div class="pc"><div class="ph"><div class="pt">🔑 אבטחה</div></div><button class="btn-add" style="width:100%;justify-content:center;background:var(--g600);margin-bottom:8px" onclick="toggleChangePassForm()">🔑 שנה סיסמה</button><div id="changePassForm" style="display:none;margin-bottom:8px"><input type="password" id="cpOld" placeholder="סיסמה נוכחית" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:16px"><input type="password" id="cpNew" placeholder="סיסמה חדשה (לפחות 4 תווים)" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:16px"><input type="password" id="cpNew2" placeholder="אימות סיסמה חדשה" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:16px"><div id="cpErr" style="font-size:12px;margin-bottom:6px;min-height:16px"></div><button class="btn-add" style="width:100%;justify-content:center" onclick="submitChangePass()">✓ עדכן סיסמה</button></div><button class="btn-add" style="width:100%;justify-content:center;background:var(--r600)" onclick="logoutApp()">🚪 נעל</button></div>
+  <div class="pc"><div class="ph"><div class="pt">🔑 אבטחה</div></div><button class="btn-add" style="width:100%;justify-content:center;background:var(--g600);margin-bottom:8px" onclick="toggleChangePassForm()">🔑 שנה סיסמה</button><div id="changePassForm" style="display:none;margin-bottom:8px"><input type="password" id="cpOld" placeholder="סיסמה נוכחית" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:16px"><input type="password" id="cpNew" placeholder="סיסמה חדשה (לפחות 4 תווים)" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:16px"><input type="password" id="cpNew2" placeholder="אימות סיסמה חדשה" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:16px"><div id="cpErr" style="font-size:12px;margin-bottom:6px;min-height:16px"></div><button class="btn-add" style="width:100%;justify-content:center" onclick="submitChangePass()">✓ עדכן סיסמה</button></div><button class="btn-add" style="width:100%;justify-content:center;background:var(--b600);margin-bottom:8px" onclick="toggleRegenRecoveryForm()">📝 קוד שחזור חדש</button><div id="regenRecoveryForm" style="display:none;margin-bottom:8px"><div style="font-size:12px;color:var(--g600);margin-bottom:8px">מזין סיסמה נוכחית כדי ליצור קוד שחזור חדש. <b>הקוד הישן יפסיק לעבוד.</b></div><input type="password" id="rrPass" placeholder="סיסמה נוכחית" style="width:100%;box-sizing:border-box;padding:10px;border-radius:8px;border:1px solid var(--g200);margin-bottom:6px;font-family:'Heebo',sans-serif;font-size:16px"><div id="rrErr" style="font-size:12px;margin-bottom:6px;min-height:16px"></div><button class="btn-add" style="width:100%;justify-content:center" onclick="submitRegenRecovery()">✓ צור קוד שחזור חדש</button><div id="rrCodeBox" style="display:none;margin-top:10px"><div style="font-size:12px;color:var(--g600);margin-bottom:6px">שמרי את הקוד הזה במקום נפרד מהטלפון — זו ההזדמנות היחידה לראות אותו:</div><div id="rrCodeDisplay" style="font-size:20px;font-weight:700;letter-spacing:2px;background:var(--g50);border:2px dashed var(--g300);border-radius:var(--rs);padding:12px;text-align:center;direction:ltr;margin-bottom:8px"></div><button class="btn-add" style="width:100%;justify-content:center;background:var(--g600)" onclick="toggleRegenRecoveryForm()">✓ שמרתי, סגור</button></div></div><button class="btn-add" style="width:100%;justify-content:center;background:var(--r600)" onclick="logoutApp()">🚪 נעל</button></div>
   <div class="pc"><div class="ph"><div class="pt">🎯 תקציבים חודשיים</div></div>
     <p style="font-size:12px;color:var(--g500);margin-bottom:10px">קבע סכום מקסימלי לחודש לכל סוג הוצאה. תקבל התראה כשמתקרבים או חורגים.</p>
     <div id="budgetSettingsList"></div>
@@ -2035,6 +2035,29 @@ function submitChangePass(){
   try{localStorage.setItem(LS_PASS,newPass);}catch(err){}
   if(e){e.style.color='var(--g600)';e.textContent='✅ הסיסמה שונתה בהצלחה!';}
   setTimeout(function(){toggleChangePassForm();},1500);
+}
+function toggleRegenRecoveryForm(){
+  var f=document.getElementById('regenRecoveryForm');
+  if(!f)return;
+  var show=f.style.display==='none';
+  f.style.display=show?'block':'none';
+  var p=document.getElementById('rrPass'),e=document.getElementById('rrErr'),box=document.getElementById('rrCodeBox');
+  if(p)p.value='';if(e)e.textContent='';if(box)box.style.display='none';
+  if(show&&p)p.focus();
+}
+async function submitRegenRecovery(){
+  var p=document.getElementById('rrPass'),e=document.getElementById('rrErr'),box=document.getElementById('rrCodeBox');
+  var pass=p?p.value:'';
+  var stored=null;try{stored=localStorage.getItem(LS_PASS);}catch(err){}
+  if(stored&&pass!==stored){if(e){e.style.color='var(--r600)';e.textContent='❌ הסיסמה שגויה.';}if(p){p.value='';p.focus();}return;}
+  var code=genRecoveryCode();
+  try{localStorage.setItem(LS_RECOVERY,await hashText(code));}catch(err){}
+  if(e){e.style.color='var(--g600)';e.textContent='✅ קוד שחזור חדש נוצר. הקוד הישן כבר לא תקף.';}
+  if(box){
+    box.style.display='block';
+    var d=document.getElementById('rrCodeDisplay');
+    if(d)d.textContent=code;
+  }
 }
 
 // ══════════════════════════════════════
